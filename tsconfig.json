@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "CommonJS",
+    "jsx": "react-jsx",
+    "lib": ["ESNext"],
+    "noImplicitAny": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "forceConsistentCasingInFileNames": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "composite": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    // "typeRoots": ["node_modules/@types", "src/customTypes"],
+    // disable in prod
+    "sourceMap": true,
+    "declaration": true
+    // "declarationMap": true
+  },
+  "include": ["src"],
+  "exclude": ["__test__", "./**/*.test.*"]
+  // "references": [{ "path": "../delta-green-core/src/index.ts" }]
+}
