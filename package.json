@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./dist/src/index.js",
+    "start": "nodemon  --max-old-space-size=8192 ./dist/src/index.js",
     "build": "tsc -w",
     "dev": "concurrently \"yarn:build\" \"yarn:start\""
   },
@@ -15,7 +15,8 @@
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
-    "mwn": "^1.11.4"
+    "mwn": "^1.11.4",
+    "word2vec": "^1.1.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.12",
