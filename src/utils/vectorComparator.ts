@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import w2v, { Model } from "word2vec";
 import { ShadowWord, Word } from "../models/Word";
 import { makeHollowWord } from "./string+utils";
@@ -13,6 +14,10 @@ const loadModel = async (): Promise<Model> => {
       "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin"
     );
     console.log("modelPath", modelPath);
+    const stats = fs.statSync(modelPath);
+    const fileSizeInBytes = stats.size;
+    const fileSizeInMegabytes = fileSizeInBytes / (1024*1024);
+    console.log(fileSizeInMegabytes, "mb");
     w2v.loadModel(
       modelPath,
       // "./frWac_non_lem_no_postag_no_phrase_200_cbow_cut0.bin",
