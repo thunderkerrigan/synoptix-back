@@ -1,4 +1,3 @@
-import { resolve } from "path";
 import w2v, { Model } from "word2vec";
 import { ShadowWord, Word } from "../models/Word";
 import { makeHollowWord } from "./string+utils";
