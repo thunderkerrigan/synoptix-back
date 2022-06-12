@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import { mwn } from "mwn";
 import { ShadowWord, ShadowWordsCloud, Word } from "../models/Word";
 import { makeHollowWord } from "../utils/string+utils";
@@ -20,7 +20,7 @@ const UNWANTED_HTML_CONTENT =
 let currentMovieWordCloud: Word = {};
 let currentMovieSynopsis: ShadowWordsCloud = [];
 
-router.get("/:movie", async (req, res) => {
+router.get("/:movie", async (req: Request, res: Response) => {
   try {
     if (!bot.loggedIn) {
       bot.login();
@@ -53,7 +53,7 @@ router.get("/:movie", async (req, res) => {
   }
 });
 
-router.get("/score/:word", async (req, res) => {
+router.get("/score/:word", async (req: Request, res: Response) => {
   const { word } = req.params;
   const score = await compareWordWithCloud(word, currentMovieWordCloud);
   return res.send(score);
