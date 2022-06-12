@@ -1,3 +1,4 @@
+import path from "path";
 import w2v, { Model } from "word2vec";
 import { ShadowWord, Word } from "../models/Word";
 import { makeHollowWord } from "./string+utils";
@@ -8,8 +9,12 @@ const loadModel = async (): Promise<Model> => {
     // console.log("loading model...");
     console.log("loading model...");
     // w2v.loadModel("./GoogleNews-vectors-negative300.bin", (error, model) => {
+    const modelPath = path.normalize(
+      "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin"
+    );
+    console.log("modelPath", modelPath);
     w2v.loadModel(
-      "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin",
+      modelPath,
       // "./frWac_non_lem_no_postag_no_phrase_200_cbow_cut0.bin",
       // "/home/thunder/Projects/synoptix/synoptix-back/GoogleNews-vectors-negative300.bin",
       // "/home/thunder/Projects/synoptix/synoptix-back/enwik9",
