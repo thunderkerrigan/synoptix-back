@@ -11,7 +11,8 @@ const loadModel = async (): Promise<Model> => {
     console.log("loading model...");
     // w2v.loadModel("./GoogleNews-vectors-negative300.bin", (error, model) => {
     const modelPath = path.normalize(
-      "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin"
+      "./frWac_non_lem_no_postag_no_phrase_200_skip_cut100.bin"
+      // "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin"
     );
     w2v.loadModel(
       modelPath,
