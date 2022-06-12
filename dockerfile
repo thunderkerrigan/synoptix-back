@@ -4,11 +4,11 @@ WORKDIR /usr/src/app
 COPY package*.json .
 RUN apt-get -y update
 COPY ./tsconfig.json .
-COPY ./src .
+COPY ./src ./src
 RUN yarn
 RUN yarn prod
 COPY ./frWiki_no_phrase_no_postag_700_cbow_cut100.bin .
 COPY .env .env
 EXPOSE 4000
-WORKDIR /usr/src/app
+WORKDIR /usr/src/app/dist
 CMD [ "node", "src/index.js" ]
