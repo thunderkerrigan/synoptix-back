@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "nodemon  --max-old-space-size=8192 ./dist/src/index.js",
+    "prod": "tsc",
     "build": "tsc -w",
     "dev": "concurrently \"yarn:build\" \"yarn:start\""
   },
