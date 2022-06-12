@@ -46,7 +46,7 @@ const startLoadingModel = async () => {
   isLoading = false;
 };
 
-startLoadingModel();
+// startLoadingModel();
 
 export const compareWordWithCloud = async (
   requestedWord: string,
