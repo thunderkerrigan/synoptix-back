@@ -5,6 +5,13 @@ export interface ShadowWord {
   similarity: number;
 }
 
-export type Word = Record<string, number>;
+export type WordCloud = Record<string, number>;
 
-  export type ShadowWordsCloud = ShadowWord[][]
+export interface GameWordCloud {
+  allWordsCloud: WordCloud;
+  singleLetterCloud: WordCloud;
+  numberCloud: WordCloud;
+  wordCloud: WordCloud;
+}
+
+export type ShadowWordsCloud = ShadowWord[][];

@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import w2v, { Model } from "word2vec";
-import { ShadowWord, Word } from "../models/Word";
+import { GameWordCloud, ShadowWord, WordCloud } from "../models/Word";
 import { makeHollowWord } from "./string+utils";
 let isLoading = false;
 let model: Model;
@@ -13,11 +13,6 @@ const loadModel = async (): Promise<Model> => {
     const modelPath = path.normalize(
       "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin"
     );
-    console.log("modelPath", modelPath);
-    const stats = fs.statSync(modelPath);
-    const fileSizeInBytes = stats.size;
-    const fileSizeInMegabytes = fileSizeInBytes / (1024*1024);
-    console.log(fileSizeInMegabytes, "mb");
     w2v.loadModel(
       modelPath,
       // "./frWac_non_lem_no_postag_no_phrase_200_cbow_cut0.bin",
@@ -46,22 +41,41 @@ const startLoadingModel = async () => {
   isLoading = false;
 };
 
-// startLoadingModel();
+startLoadingModel();
 
 export const compareWordWithCloud = async (
-  requestedWord: string,
-  cloud: Word
+  requestedWord: string | number,
+  clouds: GameWordCloud
 ): Promise<ShadowWord[]> => {
   if (!model && !isLoading) {
     await startLoadingModel();
   }
-  return Object.keys(cloud)
+  const convertedRequestedWord = parseFloat(requestedWord.toString());
+  const isANumber = !isNaN(convertedRequestedWord);
+  if (isANumber) {
+    return compareNumber(requestedWord as number, clouds.numberCloud);
+  }
+  if (requestedWord.toString().length === 1) {
+    return compareSingleLetter(
+      requestedWord as string,
+      clouds.singleLetterCloud
+    );
+  }
+  return compareWord(requestedWord as string, clouds.wordCloud);
+  // const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
+  // const isRequestedWordANumber = !isNaN(parseInt(requestedWordLowerCased));
+};
+
+const compareWord = (requestedWord: string, wordCloud: WordCloud) => {
+  const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
+
+  return Object.keys(wordCloud)
     .map<ShadowWord>((comparedWord: string, index): ShadowWord => {
-      const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
       const comparedWordLowerCased = comparedWord.toLocaleLowerCase();
-      if (comparedWordLowerCased === requestedWordLowerCased) {
+
+      if (requestedWordLowerCased === comparedWordLowerCased) {
         return {
-          id: cloud[comparedWord],
+          id: wordCloud[comparedWord],
           closestWord: comparedWord,
           shadowWord: makeHollowWord(comparedWord),
           similarity: 1,
@@ -71,14 +85,100 @@ export const compareWordWithCloud = async (
         requestedWordLowerCased,
         comparedWordLowerCased
       );
-      //   console.log(requestedWord, " : ", comparedWord, "-->", similarity);
 
       return {
-        id: cloud[comparedWord],
-        closestWord: similarity === 1 ? comparedWord : requestedWord,
+        id: wordCloud[comparedWord],
+        closestWord: requestedWord,
         shadowWord: makeHollowWord(comparedWord),
         similarity,
       };
     })
-    .filter((w) => w.similarity > 0.3);
+    .filter(fewestSimilarityRateRequired(0.3));
 };
+const compareNumber = (
+  requestedNumber: number,
+  numberCloud: WordCloud
+): ShadowWord[] => {
+  return Object.keys(numberCloud)
+    .map<ShadowWord>((comparedWord: string, index): ShadowWord => {
+      const comparedNumber = parseFloat(comparedWord);
+      if (requestedNumber === comparedNumber) {
+        return {
+          id: numberCloud[comparedWord],
+          closestWord: comparedWord,
+          shadowWord: makeHollowWord(comparedWord),
+          similarity: 1,
+        };
+      }
+      const absoluteRequestedNumber = Math.abs(requestedNumber);
+      const absoluteComparedNumber = Math.abs(comparedNumber);
+      const lowestNumber = Math.min(
+        absoluteRequestedNumber,
+        absoluteComparedNumber
+      );
+      const upperNumber = Math.max(
+        absoluteRequestedNumber,
+        absoluteComparedNumber
+      );
+      const similarity = lowestNumber / upperNumber;
+      console.log(
+        "requestedNumber",
+        requestedNumber,
+        "comparedNumber",
+        comparedNumber,
+        "==>",
+        similarity
+      );
+      return {
+        id: numberCloud[comparedWord],
+        closestWord: requestedNumber.toString(),
+        shadowWord: makeHollowWord(comparedWord),
+        similarity,
+      };
+    })
+    .filter(fewestSimilarityRateRequired(0.3));
+};
+const compareSingleLetter = (
+  requestedLetter: string,
+  letterCloud: WordCloud
+): ShadowWord[] => {
+  return Object.keys(letterCloud)
+    .map<ShadowWord>((comparedWord: string, index): ShadowWord => {
+      if (requestedLetter === comparedWord) {
+        return {
+          id: letterCloud[comparedWord],
+          closestWord: comparedWord,
+          shadowWord: makeHollowWord(comparedWord),
+          similarity: 1,
+        };
+      }
+
+      return {
+        id: letterCloud[comparedWord],
+        closestWord: requestedLetter,
+        shadowWord: makeHollowWord(comparedWord),
+        similarity: 0,
+      };
+    })
+    .filter(fewestSimilarityRateRequired(0.3));
+};
+
+const isThisTheSameWord = (
+  requestedWord: any,
+  comparedWord: any
+): ShadowWord => {
+  const comparedWordLowerCased = comparedWord.toLocaleLowerCase();
+  const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
+
+  if (requestedWordLowerCased === comparedWordLowerCased) {
+    return {
+      id: comparedWord,
+      closestWord: comparedWord,
+      shadowWord: makeHollowWord(comparedWord),
+      similarity: 1,
+    };
+  }
+};
+
+const fewestSimilarityRateRequired = (rate: number) => (w: ShadowWord) =>
+  w.similarity > rate;
