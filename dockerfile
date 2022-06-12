@@ -10,5 +10,5 @@ RUN yarn prod
 COPY ./frWiki_no_phrase_no_postag_700_cbow_cut100.bin .
 COPY .env .env
 EXPOSE 4000
-WORKDIR /usr/src/app/dist
-CMD [ "node", "src/index.js" ]
+WORKDIR /usr/src/app
+CMD [ "node", "dist/src/index.js" ]
