@@ -3,7 +3,7 @@ FROM node
 WORKDIR /usr/src/app
 COPY package*.json .
 RUN apt-get -y update
-RUN yarn --production
+RUN yarn
 RUN yarn prod
 COPY ./dist .
 COPY ./frWiki_no_phrase_no_postag_700_cbow_cut100.bin .
