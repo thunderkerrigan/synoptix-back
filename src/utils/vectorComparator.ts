@@ -94,7 +94,7 @@ const compareWord = (requestedWord: string, wordCloud: WordCloud) => {
         similarity,
       };
     })
-    .filter(fewestSimilarityRateRequired(0.3));
+    .filter(fewestSimilarityRateRequired(0.7));
 };
 const compareNumber = (
   requestedNumber: number,
@@ -137,7 +137,7 @@ const compareNumber = (
         similarity,
       };
     })
-    .filter(fewestSimilarityRateRequired(0.3));
+    .filter(fewestSimilarityRateRequired(0.5));
 };
 const compareSingleLetter = (
   requestedLetter: string,
@@ -161,7 +161,7 @@ const compareSingleLetter = (
         similarity: 0,
       };
     })
-    .filter(fewestSimilarityRateRequired(0.3));
+    .filter(fewestSimilarityRateRequired(0.5));
 };
 
 const isThisTheSameWord = (
