@@ -1,14 +1,23 @@
-import { FULL_REG_EXP, WORDS_REG_EXP } from "../utils/Regexp";
+import {
+  FULL_REG_EXP,
+  HTML_TAGS_REG_EXP,
+  WORDS_REG_EXP,
+} from "../utils/Regexp";
 import { makeHollowWord } from "../utils/string+utils";
 import { GameWordCloud, ShadowWord, ShadowWordsCloud, WordCloud } from "./Word";
 
-export interface Game {
+export interface RedactedGame {
+  redactedTitle: ShadowWordsCloud;
+  redactedSynopsis: ShadowWordsCloud;
+}
+
+export interface Game extends RedactedGame {
   id: number;
   title: string;
-  synopsis: ShadowWordsCloud;
   solution: ShadowWordsCloud;
   solutionPlainText: string;
   wordCloud: GameWordCloud; // word cloud of the synopsis
+  redactedGame: () => RedactedGame;
   makeWordCloud: (text: string) => GameWordCloud;
   transformToShadowCloud: (
     text: string,
@@ -20,7 +29,8 @@ export interface Game {
 export class Game implements Game {
   id: number;
   title: string;
-  synopsis: ShadowWordsCloud;
+  redactedTitle: ShadowWordsCloud;
+  redactedSynopsis: ShadowWordsCloud;
   solution: ShadowWordsCloud;
   solutionPlainText: string;
   wordCloud: GameWordCloud; // word cloud of the synopsis
@@ -29,8 +39,12 @@ export class Game implements Game {
     this.id = id;
     this.title = title;
     this.solutionPlainText = synopsisText;
-    this.wordCloud = this.makeWordCloud(synopsisText);
-    this.synopsis = this.transformToShadowCloud(synopsisText, this.wordCloud);
+    this.wordCloud = this.makeWordCloud(title + " " + synopsisText);
+    this.redactedTitle = this.transformToShadowCloud(title, this.wordCloud);
+    this.redactedSynopsis = this.transformToShadowCloud(
+      synopsisText,
+      this.wordCloud
+    );
     this.solution = this.transformToShadowCloud(
       synopsisText,
       this.wordCloud,
@@ -84,7 +98,8 @@ export class Game implements Game {
     return splittedParaphraphs.map((paragraph) => {
       const splits = paragraph.match(FULL_REG_EXP);
       const words = splits.map<ShadowWord>((split: string): ShadowWord => {
-        if (split.match(WORDS_REG_EXP)) {
+        const matches = split.match(WORDS_REG_EXP);
+        if (matches && matches[0].length === split.length) {
           // it's a word
           const id = wordCloud.allWordsCloud[split];
           return {
@@ -104,5 +119,11 @@ export class Game implements Game {
       });
       return words;
     });
+  };
+  redactedGame = (): RedactedGame => {
+    return {
+      redactedTitle: this.redactedTitle,
+      redactedSynopsis: this.redactedSynopsis,
+    };
   };
 }

@@ -1,5 +1,6 @@
 import {
   HTML_LINK_CONTENT_REG_EXP,
+  SPACING_REG_EXP,
   UNWANTED_HTML_CONTENT_REG_EXP,
 } from "./Regexp";
 
@@ -11,6 +12,8 @@ export const makeHollowWord = (word: string): string => {
   return hollow;
 };
 
+export const clearingASCIISpaceFromText = (text: string) =>
+  text.replace(SPACING_REG_EXP, " ");
 export const clearingLinkFromText = (text: string) =>
   text.replace(HTML_LINK_CONTENT_REG_EXP, "");
 

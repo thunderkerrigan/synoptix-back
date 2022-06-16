@@ -1,6 +1,7 @@
 import { mwn } from "mwn";
 import { PARAGRAPHS_REG_EXP } from "../utils/Regexp";
 import {
+  clearingASCIISpaceFromText,
   clearingDivFromText,
   clearingLinkFromText,
 } from "../utils/string+utils";
@@ -16,10 +17,10 @@ export const findNewMovie = async (movie: string) => {
     await bot.login();
   }
   // search nearest movie from search term
-  const findnearest = await bot.search(movie + " movie", 1);
+  const findNearest = await bot.search(movie + " movie", 1);
 
   // parsing synopsis parts
-  const response = await bot.parseTitle(findnearest[0].title, {
+  const response = await bot.parseTitle(findNearest[0].title, {
     section: "1", // synopsis is usually the first section
   });
 
@@ -27,10 +28,12 @@ export const findNewMovie = async (movie: string) => {
   const sanitizedResponse = pickupParagraphs(response);
 
   // make grids
-  return (
-    makeMovieTitle(findnearest[0].title) +
-    clearingDivFromText(clearingLinkFromText(sanitizedResponse))
-  );
+  return {
+    title: makeMovieTitle(findNearest[0].title),
+    synopsis: clearingASCIISpaceFromText(
+      clearingDivFromText(clearingLinkFromText(sanitizedResponse))
+    ),
+  };
 };
 
 const pickupParagraphs = (text: string): string => {

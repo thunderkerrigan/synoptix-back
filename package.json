@@ -5,6 +5,7 @@
   "scripts": {
     "start": "nodemon  --max-old-space-size=8192 ./dist/src/index.js",
     "prod": "tsc",
+    "tsc": "tsc",
     "build": "tsc -w",
     "dev": "concurrently \"yarn:build\" \"yarn:start\""
   },

@@ -143,22 +143,34 @@ const compareSingleLetter = (
   requestedLetter: string,
   letterCloud: WordCloud
 ): ShadowWord[] => {
+  const requestedLetterLowerCased = requestedLetter.toLocaleLowerCase();
   return Object.keys(letterCloud)
-    .map<ShadowWord>((comparedWord: string, index): ShadowWord => {
-      if (requestedLetter === comparedWord) {
+  .map<ShadowWord>((comparedLetter: string, index): ShadowWord => {
+      const comparedLetterLowerCased = comparedLetter.toLocaleLowerCase();
+      if (requestedLetterLowerCased === comparedLetterLowerCased) {
         return {
-          id: letterCloud[comparedWord],
-          closestWord: comparedWord,
-          shadowWord: makeHollowWord(comparedWord),
+          id: letterCloud[comparedLetter],
+          closestWord: comparedLetter,
+          shadowWord: makeHollowWord(comparedLetter),
           similarity: 1,
         };
       }
-
+      const absoluteRequestedNumber = Math.abs(requestedLetter.charCodeAt(0));
+      const absoluteComparedNumber = Math.abs(comparedLetter.charCodeAt(0));
+      const lowestNumber = Math.min(
+        absoluteRequestedNumber,
+        absoluteComparedNumber
+      );
+      const upperNumber = Math.max(
+        absoluteRequestedNumber,
+        absoluteComparedNumber
+      );
+      const similarity = lowestNumber / upperNumber;
       return {
-        id: letterCloud[comparedWord],
+        id: letterCloud[comparedLetter],
         closestWord: requestedLetter,
-        shadowWord: makeHollowWord(comparedWord),
-        similarity: 0,
+        shadowWord: makeHollowWord(comparedLetter),
+        similarity,
       };
     })
     .filter(fewestSimilarityRateRequired(0.5));
