@@ -3,7 +3,9 @@ import {
   findAllFormsForWord,
   findNewMovie,
 } from "../controllers/SynoptixController";
+import { TypedRequestBody } from "../models/Express";
 import { Game } from "../models/Game";
+import { ShadowWord } from "../models/Word";
 import { compareWordWithCloud } from "../utils/vectorComparator";
 const router = Router();
 
@@ -27,26 +29,29 @@ router.get("/backend/:movie", async (req: Request, res: Response) => {
   try {
     const { movie } = req.params;
     const { id, title, synopsis } = await findNewMovie(movie);
-    currentGame = new Game(id, title, synopsis);
-    res.send(currentGame.redactedGame());
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
-router.get("/backend/word/:word", async (req: Request, res: Response) => {
-  try {
-    const { word } = req.params;
-    const result = await findAllFormsForWord(word);
-    res.send(result);
+    if (!currentGame || currentGame.id !== id) {
+      currentGame = new Game(id, title, synopsis);
+    }
+    res.send(currentGame);
   } catch (error) {
     res.status(500).send(error);
   }
 });
 
-router.get("/score/:word", async (req: Request, res: Response) => {
-  const { word } = req.params;
-  const score = await compareWordWithCloud(word, currentGame.wordCloud);
-  return res.send(score);
-});
+router.post(
+  "/score/",
+  async (
+    req: TypedRequestBody<{ word: string; wordIDs: string[] }>,
+    res: Response
+  ) => {
+    const { word, wordIDs } = req.body;
+    console.log(word, wordIDs);
+
+    const score = await compareWordWithCloud(word, currentGame.wordCloud);
+    const candidateWordIDs = [...wordIDs, ...score.map((x) => x.id.toString())];
+    currentGame.checkWinningCondition(candidateWordIDs);
+    return res.send({ score, foundBy: currentGame.foundBy });
+  }
+);
 
 export default router;

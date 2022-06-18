@@ -1,11 +1,20 @@
 import { mwn } from "mwn";
-import { parseTemplates } from "mwn/build/wikitext";
-import { PARAGRAPHS_REG_EXP, TABLE_MFSP_REG_EXP } from "../utils/Regexp";
+import fs from "fs";
+import wikitext, { parseTemplates, parseSections } from "mwn/build/wikitext";
+import {
+  PARAGRAPHS_REG_EXP,
+  TABLE_MFSP_REG_EXP,
+  WIKI_DATE_REG_EXP,
+  WIKI_FILE_REG_EXP,
+  WIKI_HEADER_REG_EXP,
+  WIKI_TEXT_REG_EXP,
+} from "../utils/Regexp";
 import {
   clearingASCIISpaceFromText,
   clearingDivFromText,
   clearingLinkFromText,
 } from "../utils/string+utils";
+import { WikipediaMovie } from "../models/Word";
 
 const wikipediaBot = new mwn({
   apiUrl: process.env.WIKIPEDIA_URL,
@@ -19,7 +28,7 @@ const wiktionaryBot = new mwn({
   password: process.env.WIKTIONARY_PASSWORD,
 });
 
-export const findNewMovie = async (movie: string) => {
+export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
   if (!wikipediaBot.loggedIn) {
     await wikipediaBot.login();
   }
@@ -27,21 +36,42 @@ export const findNewMovie = async (movie: string) => {
   const findNearest = await wikipediaBot.search(movie + " movie", 1);
 
   // parsing synopsis parts
-  const response = await wikipediaBot.parseTitle(findNearest[0].title, {
-    section: "1", // synopsis is usually the first section
-  });
+  // const response = await wikipediaBot.parseTitle(findNearest[0].title, {
+  //   section: "1", // synopsis is usually the first section
+  // });
+  const foundMovieCandidate = findNearest[0].title;
+  if (foundMovieCandidate) {
+    const page = await wikipediaBot.read(foundMovieCandidate);
+    const { content } = page.revisions[0];
+    const section = parseSections(content)
+      .filter(
+        (section) =>
+          section.header === "Intrigue" ||
+          section.header === "Synopsis détaillé"
+      )
+      .reduce<Record<string, string>>((acc, section) => {
+        return { ...acc, [section.header]: section.content };
+      }, {});
+    const text = section["Synopsis détaillé"] || section["Intrigue"] || "";
 
-  // pickups only text
-  const sanitizedResponse = pickupParagraphs(response);
-
-  // make grids
-  return {
-    id: findNearest[0].pageid,
-    title: makeMovieTitle(findNearest[0].title),
-    synopsis: clearingASCIISpaceFromText(
-      clearingDivFromText(clearingLinkFromText(sanitizedResponse))
-    ),
-  };
+    const sanitizedSynopsisWikiText = text
+      .replace(WIKI_HEADER_REG_EXP, "")
+      .replace(WIKI_FILE_REG_EXP, "")
+      .replace(WIKI_TEXT_REG_EXP, (_, text) => text.split("|").pop())
+      .replace(WIKI_DATE_REG_EXP, (_, text) => text.split("|").join(" "));
+    const synopsisHTML = await wikipediaBot.parseWikitext(
+      sanitizedSynopsisWikiText
+    );
+    const sanitizedResponse = pickupParagraphs(synopsisHTML);
+    return {
+      id: page.pageid,
+      title: makeMovieTitle(page.title),
+      synopsis: clearingASCIISpaceFromText(
+        clearingDivFromText(clearingLinkFromText(sanitizedResponse))
+      ),
+    };
+  }
+  throw new Error("Movie not found");
 };
 
 export const findAllFormsForWord = async (word: string): Promise<string[]> => {
@@ -50,13 +80,6 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
   }
   // search nearest movie from search term
   const findNearest = await wiktionaryBot.search(word, 2);
-
-  interface WordForm {
-    male?: string;
-    female?: string;
-    males?: string;
-    females?: string;
-  }
 
   const FORMS = ["ms", "fs", "fp", "mp"];
   // parsing synopsis parts

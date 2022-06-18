@@ -45,6 +45,23 @@ const startLoadingModel = async () => {
 
 startLoadingModel();
 
+export const testCompareWord = async (
+  firstWord: string,
+  secondWord: string
+): Promise<string[]> => {
+  if (!model && !isLoading) {
+    await startLoadingModel();
+  }
+  const firstLowerCased = firstWord.toLocaleLowerCase();
+  const secondLowerCased = secondWord.toLocaleLowerCase();
+  const first = model.similarity(firstLowerCased, secondLowerCased);
+  const second = model.similarity(secondLowerCased, firstLowerCased);
+
+  return [
+    `${firstLowerCased} compared to ${secondLowerCased} ==> ${first}`,
+    `${secondLowerCased} compared to ${firstLowerCased} ==> ${second}`,
+  ];
+};
 export const compareWordWithCloud = async (
   requestedWord: string | number,
   clouds: GameWordCloud
@@ -64,10 +81,23 @@ export const compareWordWithCloud = async (
     );
   }
   const otherWordForms = await findAllFormsForWord(requestedWord as string);
-  return otherWordForms
-    .map((w) => compareWord(w, clouds.wordCloud))
-    .reduce((acc, curr) => [...acc, ...curr], []);
-
+  return Object.values(
+    otherWordForms
+      .map((w) => compareWord(w, clouds.wordCloud))
+      .reduce<Record<string, ShadowWord>>((acc, curr) => {
+        curr.forEach((shadowWord) => {
+          const existingShadowWord = acc[shadowWord.id];
+          if (
+            !existingShadowWord ||
+            (existingShadowWord &&
+              existingShadowWord.similarity < shadowWord.similarity)
+          ) {
+            acc[shadowWord.id] = shadowWord;
+          }
+        });
+        return acc;
+      }, {})
+  );
   return compareWord(requestedWord as string, clouds.wordCloud);
   // const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
   // const isRequestedWordANumber = !isNaN(parseInt(requestedWordLowerCased));
@@ -82,7 +112,7 @@ const compareWord = (requestedWord: string, wordCloud: WordCloud) => {
 
       if (requestedWordLowerCased === comparedWordLowerCased) {
         return {
-          id: wordCloud[comparedWord],
+          id: wordCloud[comparedWord].id,
           closestWord: comparedWord,
           shadowWord: makeHollowWord(comparedWord),
           similarity: 1,
@@ -94,7 +124,7 @@ const compareWord = (requestedWord: string, wordCloud: WordCloud) => {
       );
 
       return {
-        id: wordCloud[comparedWord],
+        id: wordCloud[comparedWord].id,
         closestWord: requestedWord,
         shadowWord: makeHollowWord(comparedWord),
         similarity,
@@ -111,7 +141,7 @@ const compareNumber = (
       const comparedNumber = parseFloat(comparedWord);
       if (requestedNumber === comparedNumber) {
         return {
-          id: numberCloud[comparedWord],
+          id: numberCloud[comparedWord].id,
           closestWord: comparedWord,
           shadowWord: makeHollowWord(comparedWord),
           similarity: 1,
@@ -128,16 +158,9 @@ const compareNumber = (
         absoluteComparedNumber
       );
       const similarity = lowestNumber / upperNumber;
-      console.log(
-        "requestedNumber",
-        requestedNumber,
-        "comparedNumber",
-        comparedNumber,
-        "==>",
-        similarity
-      );
+
       return {
-        id: numberCloud[comparedWord],
+        id: numberCloud[comparedWord].id,
         closestWord: requestedNumber.toString(),
         shadowWord: makeHollowWord(comparedWord),
         similarity,
@@ -155,7 +178,7 @@ const compareSingleLetter = (
       const comparedLetterLowerCased = comparedLetter.toLocaleLowerCase();
       if (requestedLetterLowerCased === comparedLetterLowerCased) {
         return {
-          id: letterCloud[comparedLetter],
+          id: letterCloud[comparedLetter].id,
           closestWord: comparedLetter,
           shadowWord: makeHollowWord(comparedLetter),
           similarity: 1,
@@ -173,7 +196,7 @@ const compareSingleLetter = (
       );
       const similarity = lowestNumber / upperNumber;
       return {
-        id: letterCloud[comparedLetter],
+        id: letterCloud[comparedLetter].id,
         closestWord: requestedLetter,
         shadowWord: makeHollowWord(comparedLetter),
         similarity,
