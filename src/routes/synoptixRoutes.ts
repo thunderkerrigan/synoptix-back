@@ -45,7 +45,6 @@ router.post(
     res: Response
   ) => {
     const { word, wordIDs } = req.body;
-    console.log(word, wordIDs);
 
     const score = await compareWordWithCloud(word, currentGame.wordCloud);
     const candidateWordIDs = [...wordIDs, ...score.map((x) => x.id.toString())];
