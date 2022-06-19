@@ -11,7 +11,7 @@ export const PARAGRAPHS_REG_EXP = /(<p>(.+)\s<\/p>)/gmu;
 
 export const TABLE_MFSP_REG_EXP = /(?:\|)(ms|fs|fp|mp)(?:=)(.*)/gu;
 
-export const WIKI_HEADER_REG_EXP = /(=== .+ ===\n)/gu;
+export const WIKI_HEADER_REG_EXP = /(={2,3} .+ ={2,3}\n)/gu;
 export const WIKI_TEXT_REG_EXP = /(?:\[\[)(.+?)(?:\]\])/gu;
 export const WIKI_DATE_REG_EXP = /(?:\{\{date\|)(.*?)(?:\}\})/gu;
 export const WIKI_FILE_REG_EXP = /\n(\[\[Fichier:.+?\]\]\n)/gu;
