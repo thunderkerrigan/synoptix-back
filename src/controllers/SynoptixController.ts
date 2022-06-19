@@ -47,12 +47,13 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
       .filter(
         (section) =>
           section.header === "Intrigue" ||
+          section.header === "Synopsis" ||
           section.header === "Synopsis détaillé"
       )
       .reduce<Record<string, string>>((acc, section) => {
         return { ...acc, [section.header]: section.content };
       }, {});
-    const text = section["Synopsis détaillé"] || section["Intrigue"] || "";
+    const text = section["Synopsis détaillé"] || section["Intrigue"] || section["Synopsis"] || "";
 
     const sanitizedSynopsisWikiText = text
       .replace(WIKI_HEADER_REG_EXP, "")
