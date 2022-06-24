@@ -103,7 +103,7 @@ export class Game implements Game {
   transformToShadowCloud = (
     text: string,
     wordCloud: GameWordCloud,
-    minimumRevealWord: number = 20
+    minimumRevealWord: number = 1000
   ): ShadowWordsCloud => {
     const removedFirstParagraphs = text.replace(/<p>/g, "");
     const splittedParaphraphs = removedFirstParagraphs
