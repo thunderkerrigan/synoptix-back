@@ -21,3 +21,13 @@ export interface WikipediaMovie {
 }
 
 export type ShadowWordsCloud = ShadowWord[][];
+
+export type WordType =
+  | "Adverbe"
+  | "Adjectif"
+  | "Locution"
+  | "Nom commun"
+  | "Nom propre"
+  | "Préposition"
+  | "Pronom"
+  | "Verbe";
