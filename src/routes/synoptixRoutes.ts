@@ -41,14 +41,25 @@ router.get("/backend/:movie", async (req: Request, res: Response) => {
 router.post(
   "/score/",
   async (
-    req: TypedRequestBody<{ word: string; wordIDs: string[] }>,
+    req: TypedRequestBody<{ userID: string; word: string; wordIDs: string[] }>,
     res: Response
   ) => {
-    const { word, wordIDs } = req.body;
+    const { userID, word, wordIDs } = req.body;
 
-    const score = await compareWordWithCloud(word, currentGame.wordCloud);
-    const candidateWordIDs = [...wordIDs, ...score.map((x) => x.id.toString())];
-    currentGame.checkWinningCondition(candidateWordIDs);
+    const { score, cache: updatedCache } = await compareWordWithCloud(
+      word,
+      currentGame.wordCloud,
+      currentGame.cache
+    );
+    const scoreIDs = score
+      .filter((word) => word.similarity === 1)
+      .map((word) => word.id.toString());
+    const candidateWordIDs: string[] = [
+      ...wordIDs.map((id) => id.toString()),
+      ...scoreIDs,
+    ];
+    currentGame.checkWinningCondition(userID, candidateWordIDs);
+    currentGame.cache = updatedCache;
     return res.send({ score, foundBy: currentGame.foundBy });
   }
 );

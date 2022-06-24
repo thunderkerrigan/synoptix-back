@@ -15,6 +15,14 @@ import {
   clearingLinkFromText,
 } from "../utils/string+utils";
 import { WikipediaMovie } from "../models/Word";
+import { SPARQLResponse } from "../models/api";
+import { WordModel } from "../models/mongo/Word/Word.model";
+import { CUSTOM_HEADERS } from "../SPARQL/constants";
+import {
+  ALL_CONJUGATION_WORD_QUERY,
+  ALL_FORMS_WORD_QUERY,
+  LEMATIZE_WORD_QUERY,
+} from "../SPARQL/request";
 
 const wikipediaBot = new mwn({
   apiUrl: process.env.WIKIPEDIA_URL,
@@ -53,7 +61,11 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
       .reduce<Record<string, string>>((acc, section) => {
         return { ...acc, [section.header]: section.content };
       }, {});
-    const text = section["Synopsis détaillé"] || section["Intrigue"] || section["Synopsis"] || "";
+    const text =
+      section["Synopsis détaillé"] ||
+      section["Intrigue"] ||
+      section["Synopsis"] ||
+      "";
 
     const sanitizedSynopsisWikiText = text
       .replace(WIKI_HEADER_REG_EXP, "")
@@ -79,42 +91,112 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
   if (!wiktionaryBot.loggedIn) {
     await wiktionaryBot.login();
   }
+  const cachedWord = await WordModel.findOneContaining(word);
+  if (cachedWord) {
+    // console.log("Found in cache");
+
+    return cachedWord.linkedWord;
+  }
+  try {
+    const lemma: SPARQLResponse<"l"> = await wiktionaryBot.sparqlQuery(
+      LEMATIZE_WORD_QUERY(word),
+      "https://query.wikidata.org/sparql",
+      { headers: CUSTOM_HEADERS }
+    );
+    const lexemes = lemma.results.bindings.map((b) =>
+      b.l.value.split("/").pop()
+    );
+    const wordRequests = lexemes.map(
+      (lemma): Promise<SPARQLResponse<"formLabel">> =>
+        wikipediaBot.sparqlQuery(
+          ALL_FORMS_WORD_QUERY(lemma),
+          "https://query.wikidata.org/sparql",
+          { headers: CUSTOM_HEADERS }
+        )
+    );
+    const conjugationRequests = lexemes.map(
+      (lemma): Promise<SPARQLResponse<"formLabel">> =>
+        wikipediaBot.sparqlQuery(
+          ALL_CONJUGATION_WORD_QUERY(lemma),
+          "https://query.wikidata.org/sparql",
+          { headers: CUSTOM_HEADERS }
+        )
+    );
+    const linkedWord = await Promise.all([
+      ...wordRequests,
+      ...conjugationRequests,
+    ]);
+    let newWords = linkedWord.reduce<string[]>((acc, response) => {
+      return [
+        ...acc,
+        ...response.results.bindings
+          .map((b) =>
+            /[\p{L}]+/gu.exec(b.formLabel.value.toLocaleLowerCase()).pop()
+          )
+          .reduce<string[]>((acc, _word) => {
+            console.log("ACC", acc);
+            if (acc.includes(_word)) {
+              return acc;
+            } else {
+              return [...acc, _word];
+            }
+          }, [])
+          .filter((i) => !acc.includes(i)),
+      ];
+    }, []);
+    console.log("newWords before", newWords);
+    if (newWords.length === 0) {
+      newWords = [word.toLocaleLowerCase()];
+    }
+    console.log("newWords after", newWords);
+
+    await WordModel.create(
+      newWords.map((w) => ({ value: w, linkedWord: [...newWords] }))
+    );
+    return newWords;
+  } catch (error) {
+    console.log(error);
+  }
+  return [];
   // search nearest movie from search term
-  const findNearest = await wiktionaryBot.search(word, 2);
+  // const findNearest = await wiktionaryBot.search(word, 2, "redirectsnippet");
+  // const pages = await wiktionaryBot.read(findNearest.map((page) => page.title));
+  // const FORMS = ["ms", "fs", "fp", "mp"];
+  // // parsing synopsis parts
 
-  const FORMS = ["ms", "fs", "fp", "mp"];
-  // parsing synopsis parts
-  const response = await Promise.all(
-    findNearest.map(async (item) => {
-      const r = await wiktionaryBot.read(item.title);
-      const content = r.revisions[0].content;
-      const template = parseTemplates(content, {
-        namePredicate: (name) => name === "Fr-accord-mixte",
-      });
+  // const response = await Promise.all(
+  //   pages.map(async (page) => {
+  //     console.log(page.revisions[0].content);
 
-      return template
-        .map((item) => {
-          if (item.name === "Fr-accord-mixte") {
-            return item.parameters
-              .filter((i) => FORMS.includes(i.name.toString()))
-              .map((i) => i.value);
-          }
-          return [];
-        })
-        .reduce<string[]>((acc, cur) => {
-          if (
-            cur.some((i) => i.toLocaleLowerCase() === word.toLocaleLowerCase())
-          ) {
-            cur.forEach((i) => !acc.includes(i) && acc.push(i.toString()));
-          }
-          return acc;
-        }, []);
-    })
-  );
-  return [[word], ...response].reduce<string[]>(
-    (acc, cur) => [...acc, ...cur],
-    []
-  );
+  //     // const r = await wiktionaryBot.read(item.title);
+  //     const content = page.revisions[0].content;
+  //     const template = parseTemplates(content, {
+  //       namePredicate: (name) => /fr-accord/gi.test(name),
+  //     });
+  //     // wiktionaryBot.sparqlQuery()
+  //     return template
+  //       .map((item) => {
+  //         if (typeof item.name === "string" && /fr-accord/gi.test(item.name)) {
+  //           return item.parameters
+  //             .filter((i) => FORMS.includes(i.name.toString()))
+  //             .map((i) => i.value);
+  //         }
+  //         return [];
+  //       })
+  //       .reduce<string[]>((acc, cur) => {
+  //         if (
+  //           cur.some((i) => i.toLocaleLowerCase() === word.toLocaleLowerCase())
+  //         ) {
+  //           cur.forEach((i) => !acc.includes(i) && acc.push(i.toString()));
+  //         }
+  //         return acc;
+  //       }, []);
+  //   })
+  // );
+  // return [[word], ...response].reduce<string[]>(
+  //   (acc, cur) => [...acc, ...cur.filter((i) => !acc.includes(i))],
+  //   []
+  // );
 };
 
 const pickupParagraphs = (text: string): string => {

@@ -4,36 +4,36 @@ import w2v, { Model } from "word2vec";
 import { GameWordCloud, ShadowWord, WordCloud } from "../models/Word";
 import { makeHollowWord } from "./string+utils";
 import { findAllFormsForWord } from "../controllers/SynoptixController";
+import { connect, connection } from "mongoose";
 let isLoading = false;
 let model: Model;
+
+connect(process.env.MONGO_DB_HOST, {
+  user: process.env.MONGO_DB_USER,
+  dbName: process.env.MONGO_DB_DATABASE,
+  pass: process.env.MONGO_DB_PASS,
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  // serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  // socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+});
+
+connection.once("open", async () => {
+  console.log("connected to database");
+});
+
 const loadModel = async (): Promise<Model> => {
   return new Promise((resolve, reject) => {
-    // console.log("loading model...");
     console.log("loading model...");
-    // w2v.loadModel("./GoogleNews-vectors-negative300.bin", (error, model) => {
     const modelPath = path.normalize(
       "./frWac_non_lem_no_postag_no_phrase_200_skip_cut100.bin"
-      // "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin"
     );
-    w2v.loadModel(
-      modelPath,
-      // "./frWac_non_lem_no_postag_no_phrase_200_cbow_cut0.bin",
-      // "/home/thunder/Projects/synoptix/synoptix-back/GoogleNews-vectors-negative300.bin",
-      // "/home/thunder/Projects/synoptix/synoptix-back/enwik9",
-      // "./frWac_no_postag_no_phrase_700_skip_cut50.bin",
-      //   "./frWiki_no_lem_no_postag_no_phrase_1000_skip_cut200.bin",
-      // "./frWiki_no_phrase_no_postag_700_cbow_cut100.bin",
-      // "./frWac_non_lem_no_postag_no_phrase_200_cbow_cut0.bin",
-      // "./frwiki-20181020.treetag.2.ngram-pass2__2019-04-08_09.02__.s500_w5_skip.word2vec.bin",
-      // "./frwiki-20181020.treetag.2__2019-01-24_10.41__.s500_w5_skip.word2vec.bin",
-      (error, model) => {
-        if (error) {
-          reject(error);
-        }
-        console.log("model loaded");
-        resolve(model);
+    w2v.loadModel(modelPath, (error, model) => {
+      if (error) {
+        reject(error);
       }
-    );
+      console.log("model loaded");
+      resolve(model);
+    });
   });
 };
 
@@ -45,68 +45,71 @@ const startLoadingModel = async () => {
 
 startLoadingModel();
 
-export const testCompareWord = async (
-  firstWord: string,
-  secondWord: string
-): Promise<string[]> => {
-  if (!model && !isLoading) {
-    await startLoadingModel();
-  }
-  const firstLowerCased = firstWord.toLocaleLowerCase();
-  const secondLowerCased = secondWord.toLocaleLowerCase();
-  const first = model.similarity(firstLowerCased, secondLowerCased);
-  const second = model.similarity(secondLowerCased, firstLowerCased);
-
-  return [
-    `${firstLowerCased} compared to ${secondLowerCased} ==> ${first}`,
-    `${secondLowerCased} compared to ${firstLowerCased} ==> ${second}`,
-  ];
-};
 export const compareWordWithCloud = async (
   requestedWord: string | number,
-  clouds: GameWordCloud
-): Promise<ShadowWord[]> => {
+  clouds: GameWordCloud,
+  currentCache: Record<string, ShadowWord[]>
+): Promise<{ score: ShadowWord[]; cache: Record<string, ShadowWord[]> }> => {
   if (!model && !isLoading) {
     await startLoadingModel();
   }
   const convertedRequestedWord = parseFloat(requestedWord.toString());
   const isANumber = !isNaN(convertedRequestedWord);
   if (isANumber) {
-    return compareNumber(requestedWord as number, clouds.numberCloud);
+    return compareNumber(
+      requestedWord as number,
+      clouds.numberCloud,
+      currentCache
+    );
   }
   if (requestedWord.toString().length === 1) {
     return compareSingleLetter(
       requestedWord as string,
-      clouds.singleLetterCloud
+      clouds.singleLetterCloud,
+      currentCache
     );
   }
   const otherWordForms = await findAllFormsForWord(requestedWord as string);
-  return Object.values(
-    otherWordForms
-      .map((w) => compareWord(w, clouds.wordCloud))
-      .reduce<Record<string, ShadowWord>>((acc, curr) => {
-        curr.forEach((shadowWord) => {
-          const existingShadowWord = acc[shadowWord.id];
+  const words = otherWordForms
+    .map((w) => compareWord(w, clouds.wordCloud, currentCache))
+    .reduce<{
+      score: Record<number, ShadowWord>;
+      cache: Record<string, ShadowWord[]>;
+    }>(
+      (acc, curr) => {
+        curr.score.forEach((shadowWord) => {
+          const existingShadowWord = acc.score[shadowWord.id];
           if (
             !existingShadowWord ||
             (existingShadowWord &&
               existingShadowWord.similarity < shadowWord.similarity)
           ) {
-            acc[shadowWord.id] = shadowWord;
+            acc.score[shadowWord.id] = shadowWord;
           }
         });
+        acc.cache = { ...acc.cache, ...curr.cache };
         return acc;
-      }, {})
-  );
-  return compareWord(requestedWord as string, clouds.wordCloud);
+      },
+      { score: {}, cache: currentCache }
+    );
+
+  return { score: Object.values(words.score), cache: words.cache };
+  // return compareWord(requestedWord as string, clouds.wordCloud);
   // const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
   // const isRequestedWordANumber = !isNaN(parseInt(requestedWordLowerCased));
 };
 
-const compareWord = (requestedWord: string, wordCloud: WordCloud) => {
+const compareWord = (
+  requestedWord: string,
+  wordCloud: WordCloud,
+  currentCache: Record<string, ShadowWord[]>
+): { score: ShadowWord[]; cache: Record<string, ShadowWord[]> } => {
+  if (currentCache[requestedWord]) {
+    return { score: currentCache[requestedWord], cache: currentCache };
+  }
   const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
 
-  return Object.keys(wordCloud)
+  const clouds = Object.keys(wordCloud)
     .map<ShadowWord>((comparedWord: string, index): ShadowWord => {
       const comparedWordLowerCased = comparedWord.toLocaleLowerCase();
 
@@ -131,12 +134,17 @@ const compareWord = (requestedWord: string, wordCloud: WordCloud) => {
       };
     })
     .filter(fewestSimilarityRateRequired(0.55));
+  return { score: clouds, cache: { ...currentCache, [requestedWord]: clouds } };
 };
 const compareNumber = (
   requestedNumber: number,
-  numberCloud: WordCloud
-): ShadowWord[] => {
-  return Object.keys(numberCloud)
+  numberCloud: WordCloud,
+  currentCache: Record<string, ShadowWord[]>
+): { score: ShadowWord[]; cache: Record<string, ShadowWord[]> } => {
+  if (currentCache[requestedNumber]) {
+    return { score: currentCache[requestedNumber], cache: currentCache };
+  }
+  const clouds = Object.keys(numberCloud)
     .map<ShadowWord>((comparedWord: string, index): ShadowWord => {
       const comparedNumber = parseFloat(comparedWord);
       if (requestedNumber === comparedNumber) {
@@ -167,13 +175,21 @@ const compareNumber = (
       };
     })
     .filter(fewestSimilarityRateRequired(0.5));
+  return {
+    score: clouds,
+    cache: { ...currentCache, [requestedNumber]: clouds },
+  };
 };
 const compareSingleLetter = (
   requestedLetter: string,
-  letterCloud: WordCloud
-): ShadowWord[] => {
+  letterCloud: WordCloud,
+  currentCache: Record<string, ShadowWord[]>
+): { score: ShadowWord[]; cache: Record<string, ShadowWord[]> } => {
+  if (currentCache[requestedLetter]) {
+    return { score: currentCache[requestedLetter], cache: currentCache };
+  }
   const requestedLetterLowerCased = requestedLetter.toLocaleLowerCase();
-  return Object.keys(letterCloud)
+  const clouds = Object.keys(letterCloud)
     .map<ShadowWord>((comparedLetter: string, index): ShadowWord => {
       const comparedLetterLowerCased = comparedLetter.toLocaleLowerCase();
       if (requestedLetterLowerCased === comparedLetterLowerCased) {
@@ -203,6 +219,10 @@ const compareSingleLetter = (
       };
     })
     .filter(fewestSimilarityRateRequired(0.5));
+  return {
+    score: clouds,
+    cache: { ...currentCache, [requestedLetter]: clouds },
+  };
 };
 
 const isThisTheSameWord = (

@@ -16,10 +16,12 @@ export interface RedactedGame {
 export interface Game extends RedactedGame {
   id: number;
   title: string;
+  foundByIDs: string[];
   solution: ShadowWordsCloud;
   solutionPlainText: string;
   wordCloud: GameWordCloud; // word cloud of the synopsis
-  checkWinningCondition: (candidateIDs: string[]) => void;
+  cache: Record<string, ShadowWord[]>; // cache of previous scored words
+  checkWinningCondition: (userID: string, candidateIDs: string[]) => void;
   redactedGame: () => RedactedGame;
   makeWordCloud: (text: string) => GameWordCloud;
   transformToShadowCloud: (
@@ -32,19 +34,20 @@ export interface Game extends RedactedGame {
 export class Game implements Game {
   id: number;
   title: string;
-  foundBy: number;
+  foundByIDs: string[];
   redactedTitle: ShadowWordsCloud;
   redactedSynopsis: ShadowWordsCloud;
   solution: ShadowWordsCloud;
   solutionPlainText: string;
   wordCloud: GameWordCloud; // word cloud of the synopsis
-
+  cache: Record<string, ShadowWord[]>;
   constructor(id: number, title: string, synopsisText: string) {
     this.id = id;
     this.title = title;
-    this.foundBy = 0;
+    this.foundByIDs = [];
     this.solutionPlainText = synopsisText;
     this.wordCloud = this.makeWordCloud(title + " " + synopsisText);
+    this.cache = {};
     this.redactedTitle = this.transformToShadowCloud(title, this.wordCloud);
     this.redactedSynopsis = this.transformToShadowCloud(
       synopsisText,
@@ -56,6 +59,10 @@ export class Game implements Game {
       0
     );
   }
+  get foundBy() {
+    return this.foundByIDs.length;
+  }
+
   makeWordCloud = (text: string): GameWordCloud => {
     const allWordsCloud = text
       .match(WORDS_REG_EXP)
@@ -135,13 +142,19 @@ export class Game implements Game {
       redactedSynopsis: this.redactedSynopsis,
     };
   };
-  checkWinningCondition = (candidateIDs: string[]): void => {
-    const solutionIDs = this.redactedTitle
-      .reduce((acc, curr) => [...acc, ...curr], [])
-      .map((word) => word.id.toString());
-
-    if (candidateIDs.every((id) => solutionIDs.includes(id.toString()))) {
-      this.foundBy++;
+  checkWinningCondition = (userID: string, candidateIDs: string[]): void => {
+    if (!this.foundByIDs.includes(userID)) {
+      const solutionIDs = this.redactedTitle
+        .reduce((acc, curr) => [...acc, ...curr], [])
+        .map((word) => word.id.toString());
+      console.log("solutionIDs", solutionIDs);
+      console.log("candidateIDs", candidateIDs);
+      if (solutionIDs.every((id) => candidateIDs.includes(id.toString()))) {
+        console.log("WINNER!");
+        console.log("before:", this.foundBy);
+        this.foundByIDs.push(userID);
+        console.log("after:", this.foundBy);
+      }
     }
   };
 }
