@@ -131,7 +131,7 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
         ...acc,
         ...response.results.bindings
           .map((b) =>
-            /[\p{L}]+/gu.exec(b.formLabel.value.toLocaleLowerCase()).pop()
+            /[\p{L}|\-]+/gu.exec(b.formLabel.value.toLocaleLowerCase()).pop()
           )
           .reduce<string[]>((acc, _word) => {
             console.log("ACC", acc);
@@ -144,11 +144,10 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
           .filter((i) => !acc.includes(i)),
       ];
     }, []);
-    console.log("newWords before", newWords);
     if (newWords.length === 0) {
-      newWords = [word.toLocaleLowerCase()];
+      // missing word in wiktionary; better not cache it
+      return [word.toLocaleLowerCase()];
     }
-    console.log("newWords after", newWords);
 
     await WordModel.create(
       newWords.map((w) => ({ value: w, linkedWord: [...newWords] }))
