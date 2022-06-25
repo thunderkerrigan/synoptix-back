@@ -147,16 +147,16 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
     if (newWords.length === 0) {
       // missing word in wiktionary; better not cache it
       return [word.toLocaleLowerCase()];
+    } else {
+      await WordModel.create(
+        newWords.map((w) => ({ value: w, linkedWord: [...newWords] }))
+      );
+      return newWords;
     }
-
-    await WordModel.create(
-      newWords.map((w) => ({ value: w, linkedWord: [...newWords] }))
-    );
-    return newWords;
   } catch (error) {
     console.log(error);
+    return [word.toLocaleLowerCase()];
   }
-  return [];
   // search nearest movie from search term
   // const findNearest = await wiktionaryBot.search(word, 2, "redirectsnippet");
   // const pages = await wiktionaryBot.read(findNearest.map((page) => page.title));
