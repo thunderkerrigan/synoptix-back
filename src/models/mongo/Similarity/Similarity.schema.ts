@@ -37,6 +37,7 @@ SimilaritySchema.statics.findOneOrCreate = async function (
     return existing || (await this.create(tupleSimilarity));
   } catch (error) {
     // TODO: handle error
+    console.error(error);
   }
 };
 
