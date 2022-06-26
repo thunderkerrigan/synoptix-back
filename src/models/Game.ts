@@ -21,7 +21,7 @@ export interface Game extends RedactedGame {
   solutionPlainText: string;
   wordCloud: GameWordCloud; // word cloud of the synopsis
   cache: Record<string, ShadowWord[]>; // cache of previous scored words
-  checkWinningCondition: (userID: string, candidateIDs: string[]) => void;
+  checkWinningCondition: (userID: string, candidateIDs: string[]) => boolean;
   redactedGame: () => RedactedGame;
   makeWordCloud: (text: string) => GameWordCloud;
   transformToShadowCloud: (
@@ -142,19 +142,17 @@ export class Game implements Game {
       redactedSynopsis: this.redactedSynopsis,
     };
   };
-  checkWinningCondition = (userID: string, candidateIDs: string[]): void => {
+  checkWinningCondition = (userID: string, candidateIDs: string[]): boolean => {
     if (!this.foundByIDs.includes(userID)) {
       const solutionIDs = this.redactedTitle
         .reduce((acc, curr) => [...acc, ...curr], [])
         .map((word) => word.id.toString());
-      console.log("solutionIDs", solutionIDs);
-      console.log("candidateIDs", candidateIDs);
       if (solutionIDs.every((id) => candidateIDs.includes(id.toString()))) {
-        console.log("WINNER!");
-        console.log("before:", this.foundBy);
         this.foundByIDs.push(userID);
-        console.log("after:", this.foundBy);
+        return true;
       }
+      return false;
     }
+    return true;
   };
 }

@@ -18,6 +18,13 @@ router.get("/", async (req: Request, res: Response) => {
     res.status(500).send(error);
   }
 });
+router.get("/status", async (req: Request, res: Response) => {
+  try {
+    res.send(currentGame.redactedGame());
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
 router.get("/backend/response", async (req: Request, res: Response) => {
   try {
     res.send(currentGame.title + currentGame.solutionPlainText);
@@ -44,6 +51,7 @@ router.post(
     req: TypedRequestBody<{ userID: string; word: string; wordIDs: string[] }>,
     res: Response
   ) => {
+    console.time("score");
     const { userID, word, wordIDs } = req.body;
 
     const { score, cache: updatedCache } = await compareWordWithCloud(
@@ -51,6 +59,8 @@ router.post(
       currentGame.wordCloud,
       currentGame.cache
     );
+    // console.log("score found words");
+    // console.timeLog("score");
     const scoreIDs = score
       .filter((word) => word.similarity === 1)
       .map((word) => word.id.toString());
@@ -58,9 +68,15 @@ router.post(
       ...wordIDs.map((id) => id.toString()),
       ...scoreIDs,
     ];
-    currentGame.checkWinningCondition(userID, candidateWordIDs);
+    const hasWon = currentGame.checkWinningCondition(userID, candidateWordIDs);
     currentGame.cache = updatedCache;
-    return res.send({ score, foundBy: currentGame.foundBy });
+    // console.log("score end");
+    // console.timeEnd("score");
+    return res.send({
+      score,
+      foundBy: currentGame.foundBy,
+      response: hasWon ? currentGame.solution : undefined,
+    });
   }
 );
 

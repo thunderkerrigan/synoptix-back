@@ -7,6 +7,8 @@ import {
   WIKI_DATE_REG_EXP,
   WIKI_FILE_REG_EXP,
   WIKI_HEADER_REG_EXP,
+  WIKI_LANGUAGE_REG_EXP,
+  WIKI_OTHER_REG_EXP,
   WIKI_TEXT_REG_EXP,
 } from "../utils/Regexp";
 import {
@@ -70,8 +72,10 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
     const sanitizedSynopsisWikiText = text
       .replace(WIKI_HEADER_REG_EXP, "")
       .replace(WIKI_FILE_REG_EXP, "")
+      .replace(WIKI_LANGUAGE_REG_EXP, "")
       .replace(WIKI_TEXT_REG_EXP, (_, text) => text.split("|").pop())
-      .replace(WIKI_DATE_REG_EXP, (_, text) => text.split("|").join(" "));
+      .replace(WIKI_DATE_REG_EXP, (_, text) => text.split("|").join(" "))
+      .replace(WIKI_OTHER_REG_EXP, (_, text) => text.split("|").join(" "));
     const synopsisHTML = await wikipediaBot.parseWikitext(
       sanitizedSynopsisWikiText
     );
@@ -134,7 +138,6 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
             /[\p{L}|\-]+/gu.exec(b.formLabel.value.toLocaleLowerCase()).pop()
           )
           .reduce<string[]>((acc, _word) => {
-            console.log("ACC", acc);
             if (acc.includes(_word)) {
               return acc;
             } else {
@@ -157,45 +160,6 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
     console.log(error);
     return [word.toLocaleLowerCase()];
   }
-  // search nearest movie from search term
-  // const findNearest = await wiktionaryBot.search(word, 2, "redirectsnippet");
-  // const pages = await wiktionaryBot.read(findNearest.map((page) => page.title));
-  // const FORMS = ["ms", "fs", "fp", "mp"];
-  // // parsing synopsis parts
-
-  // const response = await Promise.all(
-  //   pages.map(async (page) => {
-  //     console.log(page.revisions[0].content);
-
-  //     // const r = await wiktionaryBot.read(item.title);
-  //     const content = page.revisions[0].content;
-  //     const template = parseTemplates(content, {
-  //       namePredicate: (name) => /fr-accord/gi.test(name),
-  //     });
-  //     // wiktionaryBot.sparqlQuery()
-  //     return template
-  //       .map((item) => {
-  //         if (typeof item.name === "string" && /fr-accord/gi.test(item.name)) {
-  //           return item.parameters
-  //             .filter((i) => FORMS.includes(i.name.toString()))
-  //             .map((i) => i.value);
-  //         }
-  //         return [];
-  //       })
-  //       .reduce<string[]>((acc, cur) => {
-  //         if (
-  //           cur.some((i) => i.toLocaleLowerCase() === word.toLocaleLowerCase())
-  //         ) {
-  //           cur.forEach((i) => !acc.includes(i) && acc.push(i.toString()));
-  //         }
-  //         return acc;
-  //       }, []);
-  //   })
-  // );
-  // return [[word], ...response].reduce<string[]>(
-  //   (acc, cur) => [...acc, ...cur.filter((i) => !acc.includes(i))],
-  //   []
-  // );
 };
 
 const pickupParagraphs = (text: string): string => {

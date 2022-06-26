@@ -5,6 +5,8 @@ import { GameWordCloud, ShadowWord, WordCloud } from "../models/Word";
 import { makeHollowWord } from "./string+utils";
 import { findAllFormsForWord } from "../controllers/SynoptixController";
 import { connect, connection } from "mongoose";
+import { SimilarityModel } from "../models/mongo/Similarity/Similarity.model";
+import { arrayEquals } from "./array+utils";
 let isLoading = false;
 let model: Model;
 
@@ -37,7 +39,7 @@ const loadModel = async (): Promise<Model> => {
   });
 };
 
-const startLoadingModel = async () => {
+export const startLoadingModel = async () => {
   isLoading = true;
   model = await loadModel();
   isLoading = false;
@@ -70,28 +72,29 @@ export const compareWordWithCloud = async (
     );
   }
   const otherWordForms = await findAllFormsForWord(requestedWord as string);
-  const words = otherWordForms
-    .map((w) => compareWord(w, clouds.wordCloud, currentCache))
-    .reduce<{
-      score: Record<number, ShadowWord>;
-      cache: Record<string, ShadowWord[]>;
-    }>(
-      (acc, curr) => {
-        curr.score.forEach((shadowWord) => {
-          const existingShadowWord = acc.score[shadowWord.id];
-          if (
-            !existingShadowWord ||
-            (existingShadowWord &&
-              existingShadowWord.similarity < shadowWord.similarity)
-          ) {
-            acc.score[shadowWord.id] = shadowWord;
-          }
-        });
-        acc.cache = { ...acc.cache, ...curr.cache };
-        return acc;
-      },
-      { score: {}, cache: currentCache }
-    );
+  const rawWords = await Promise.all(
+    otherWordForms.map((w) => compareWord(w, clouds.wordCloud, currentCache))
+  );
+  const words = rawWords.reduce<{
+    score: Record<number, ShadowWord>;
+    cache: Record<string, ShadowWord[]>;
+  }>(
+    (acc, curr) => {
+      curr.score.forEach((shadowWord) => {
+        const existingShadowWord = acc.score[shadowWord.id];
+        if (
+          !existingShadowWord ||
+          (existingShadowWord &&
+            existingShadowWord.similarity < shadowWord.similarity)
+        ) {
+          acc.score[shadowWord.id] = shadowWord;
+        }
+      });
+      acc.cache = { ...acc.cache, ...curr.cache };
+      return acc;
+    },
+    { score: {}, cache: currentCache }
+  );
 
   return { score: Object.values(words.score), cache: words.cache };
   // return compareWord(requestedWord as string, clouds.wordCloud);
@@ -99,18 +102,26 @@ export const compareWordWithCloud = async (
   // const isRequestedWordANumber = !isNaN(parseInt(requestedWordLowerCased));
 };
 
-const compareWord = (
+const compareWord = async (
   requestedWord: string,
   wordCloud: WordCloud,
   currentCache: Record<string, ShadowWord[]>
-): { score: ShadowWord[]; cache: Record<string, ShadowWord[]> } => {
+): Promise<{ score: ShadowWord[]; cache: Record<string, ShadowWord[]> }> => {
+  // cached request exist; returning it
   if (currentCache[requestedWord]) {
     return { score: currentCache[requestedWord], cache: currentCache };
   }
   const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
-
-  const clouds = Object.keys(wordCloud)
-    .map<ShadowWord>((comparedWord: string, index): ShadowWord => {
+  if (!model.getVector(requestedWordLowerCased)) {
+    // word does not exist in model; skipping useless search
+    return { score: [], cache: currentCache };
+  }
+  const cachedSimilarities = await SimilarityModel.findSimilarForTuples(
+    requestedWordLowerCased,
+    Object.keys(wordCloud)
+  );
+  const rawClouds = Object.keys(wordCloud).map<Promise<ShadowWord>>(
+    async (comparedWord: string): Promise<ShadowWord> => {
       const comparedWordLowerCased = comparedWord.toLocaleLowerCase();
 
       if (requestedWordLowerCased === comparedWordLowerCased) {
@@ -121,20 +132,47 @@ const compareWord = (
           similarity: 1,
         };
       }
-      const similarity = model.similarity(
-        requestedWordLowerCased,
-        comparedWordLowerCased
+      const cachedSimilarity = cachedSimilarities.find((c) =>
+        arrayEquals(
+          c.tuple.sort(),
+          [requestedWordLowerCased, comparedWordLowerCased].sort()
+        )
       );
-
-      return {
-        id: wordCloud[comparedWord].id,
-        closestWord: requestedWord,
-        shadowWord: makeHollowWord(comparedWord),
-        similarity,
-      };
-    })
-    .filter(fewestSimilarityRateRequired(0.55));
-  return { score: clouds, cache: { ...currentCache, [requestedWord]: clouds } };
+      if (cachedSimilarity) {
+        return {
+          id: wordCloud[comparedWord].id,
+          closestWord: requestedWord,
+          shadowWord: makeHollowWord(comparedWord),
+          similarity: cachedSimilarity.score,
+        };
+      } else {
+        const similarity = model.similarity(
+          requestedWordLowerCased,
+          comparedWordLowerCased
+        );
+        const tuple = [
+          requestedWordLowerCased,
+          comparedWordLowerCased,
+        ].sort() as [string, string];
+        await SimilarityModel.findOneOrCreate({
+          tuple,
+          score: similarity,
+        });
+        return {
+          id: wordCloud[comparedWord].id,
+          closestWord: requestedWord,
+          shadowWord: makeHollowWord(comparedWord),
+          similarity,
+        };
+      }
+    }
+  );
+  const clouds = await Promise.all(rawClouds);
+  const score = clouds.filter(fewestSimilarityRateRequired(0.55));
+  return {
+    score,
+    cache: { ...currentCache, [requestedWord]: score },
+  };
 };
 const compareNumber = (
   requestedNumber: number,
