@@ -47,6 +47,9 @@ export const startLoadingModel = async () => {
 
 startLoadingModel();
 
+export const checkWordInModel = (word: string): boolean =>
+  model.getVector(word.toLocaleLowerCase()) !== null;
+
 export const compareWordWithCloud = async (
   requestedWord: string | number,
   clouds: GameWordCloud,
@@ -71,10 +74,13 @@ export const compareWordWithCloud = async (
       currentCache
     );
   }
+
   const otherWordForms = await findAllFormsForWord(requestedWord as string);
+
   const rawWords = await Promise.all(
     otherWordForms.map((w) => compareWord(w, clouds.wordCloud, currentCache))
   );
+
   const words = rawWords.reduce<{
     score: Record<number, ShadowWord>;
     cache: Record<string, ShadowWord[]>;
@@ -112,14 +118,16 @@ const compareWord = async (
     return { score: currentCache[requestedWord], cache: currentCache };
   }
   const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
-  if (!model.getVector(requestedWordLowerCased)) {
+  if (model.getVector(requestedWordLowerCased) === null) {
     // word does not exist in model; skipping useless search
     return { score: [], cache: currentCache };
   }
+
   const cachedSimilarities = await SimilarityModel.findSimilarForTuples(
     requestedWordLowerCased,
     Object.keys(wordCloud)
   );
+
   const rawClouds = Object.keys(wordCloud).map<Promise<ShadowWord>>(
     async (comparedWord: string): Promise<ShadowWord> => {
       const comparedWordLowerCased = comparedWord.toLocaleLowerCase();
@@ -146,18 +154,21 @@ const compareWord = async (
           similarity: cachedSimilarity.score,
         };
       } else {
-        const similarity = model.similarity(
-          requestedWordLowerCased,
-          comparedWordLowerCased
-        );
+        const similarity = wordCloud[comparedWord].hasVector
+          ? model.similarity(requestedWordLowerCased, comparedWordLowerCased)
+          : 0;
+
         const tuple = [
           requestedWordLowerCased,
           comparedWordLowerCased,
         ].sort() as [string, string];
-        await SimilarityModel.findOneOrCreate({
-          tuple,
-          score: similarity,
-        });
+        if (tuple && (similarity !== null || similarity !== undefined)) {
+          await SimilarityModel.findOneOrCreate({
+            tuple,
+            score: similarity,
+          });
+        }
+
         return {
           id: wordCloud[comparedWord].id,
           closestWord: requestedWord,
@@ -169,6 +180,7 @@ const compareWord = async (
   );
   const clouds = await Promise.all(rawClouds);
   const score = clouds.filter(fewestSimilarityRateRequired(0.55));
+
   return {
     score,
     cache: { ...currentCache, [requestedWord]: score },

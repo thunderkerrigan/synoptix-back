@@ -1,16 +1,16 @@
-import { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { ISimilarity, ISimilarityDocument } from "./Similarity.types";
+import Double from "@mongoosejs/double";
 
 const SimilaritySchema = new Schema<ISimilarityDocument>({
   tuple: { type: [String, String], required: true },
-  score: { type: Number, required: true },
+  score: { type: Double, required: true },
 });
 
 SimilaritySchema.statics.findSimilarForTuples = async function (
   requestedWord: string,
   words: string[]
 ): Promise<ISimilarityDocument[]> {
-  // {$and:[{tuple: {$in:["la"]}},{tuple: {$in:["long", "tranquille"]}}]}
   return await this.find({
     $and: [{ tuple: { $in: [requestedWord] } }, { tuple: { $in: words } }],
   }).lean();

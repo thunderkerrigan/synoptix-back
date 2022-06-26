@@ -51,7 +51,6 @@ router.post(
     req: TypedRequestBody<{ userID: string; word: string; wordIDs: string[] }>,
     res: Response
   ) => {
-    console.time("score");
     const { userID, word, wordIDs } = req.body;
 
     const { score, cache: updatedCache } = await compareWordWithCloud(
@@ -59,8 +58,7 @@ router.post(
       currentGame.wordCloud,
       currentGame.cache
     );
-    // console.log("score found words");
-    // console.timeLog("score");
+
     const scoreIDs = score
       .filter((word) => word.similarity === 1)
       .map((word) => word.id.toString());
@@ -70,8 +68,6 @@ router.post(
     ];
     const hasWon = currentGame.checkWinningCondition(userID, candidateWordIDs);
     currentGame.cache = updatedCache;
-    // console.log("score end");
-    // console.timeEnd("score");
     return res.send({
       score,
       foundBy: currentGame.foundBy,

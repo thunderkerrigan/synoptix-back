@@ -4,6 +4,7 @@ import {
   WORDS_REG_EXP,
 } from "../utils/Regexp";
 import { makeHollowWord } from "../utils/string+utils";
+import { checkWordInModel } from "../utils/vectorComparator";
 import { GameWordCloud, ShadowWord, ShadowWordsCloud, WordCloud } from "./Word";
 
 export interface RedactedGame {
@@ -65,10 +66,16 @@ export class Game implements Game {
 
   makeWordCloud = (text: string): GameWordCloud => {
     const allWordsCloud = text
+      .replace(HTML_TAGS_REG_EXP, " ")
       .match(WORDS_REG_EXP)
       .reduce<WordCloud>((set, item) => {
         if (!set[item]) {
-          set[item] = { id: Object.keys(set).length, appearanceCount: 1 };
+          const hasVector = checkWordInModel(item);
+          set[item] = {
+            id: Object.keys(set).length,
+            appearanceCount: 1,
+            hasVector,
+          };
         } else {
           set[item].appearanceCount++;
         }

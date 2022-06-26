@@ -5,7 +5,10 @@ export interface ShadowWord {
   similarity: number;
 }
 
-export type WordCloud = Record<string, { id: number; appearanceCount: number }>;
+export type WordCloud = Record<
+  string,
+  { id: number; appearanceCount: number; hasVector: boolean }
+>;
 
 export interface GameWordCloud {
   allWordsCloud: WordCloud;
