@@ -59,6 +59,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
         (section) =>
           section.header === "Intrigue" ||
           section.header === "Synopsis" ||
+          section.header === "Résumé détaillé" ||
           section.header === "Synopsis détaillé"
       )
       .reduce<Record<string, string>>((acc, section) => {
@@ -66,6 +67,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
       }, {});
     const text =
       section["Synopsis détaillé"] ||
+      section["Résumé détaillé"] ||
       section["Intrigue"] ||
       section["Synopsis"] ||
       "";
