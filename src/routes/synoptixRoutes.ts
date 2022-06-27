@@ -52,7 +52,7 @@ router.post(
         res: Response
     ) => {
         const { userID, word, wordIDs } = req.body
-        console.log('score', userID, word)
+        // console.log('score', userID, word)
         const { score, cache: updatedCache } = await compareWordWithCloud(
             word,
             currentGame.wordCloud,
