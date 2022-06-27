@@ -4,6 +4,7 @@ import wikitext, { parseTemplates, parseSections } from "mwn/build/wikitext";
 import {
   PARAGRAPHS_REG_EXP,
   TABLE_MFSP_REG_EXP,
+  WIKI_COMMA_REG_EXP,
   WIKI_DATE_REG_EXP,
   WIKI_FILE_REG_EXP,
   WIKI_HEADER_REG_EXP,
@@ -73,6 +74,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
       .replace(WIKI_HEADER_REG_EXP, "")
       .replace(WIKI_FILE_REG_EXP, "")
       .replace(WIKI_LANGUAGE_REG_EXP, "")
+      .replace(WIKI_COMMA_REG_EXP, "")
       .replace(WIKI_TEXT_REG_EXP, (_, text) => text.split("|").pop())
       .replace(WIKI_DATE_REG_EXP, (_, text) => text.split("|").join(" "))
       .replace(WIKI_OTHER_REG_EXP, (_, text) => text.split("|").join(" "));

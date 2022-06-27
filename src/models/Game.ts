@@ -70,11 +70,11 @@ export class Game implements Game {
       .match(WORDS_REG_EXP)
       .reduce<WordCloud>((set, item) => {
         if (!set[item]) {
-          const hasVector = checkWordInModel(item);
+          const nearestWords = checkWordInModel(item);
           set[item] = {
             id: Object.keys(set).length,
             appearanceCount: 1,
-            hasVector,
+            nearestWords,
           };
         } else {
           set[item].appearanceCount++;

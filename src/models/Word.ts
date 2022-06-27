@@ -7,7 +7,11 @@ export interface ShadowWord {
 
 export type WordCloud = Record<
   string,
-  { id: number; appearanceCount: number; hasVector: boolean }
+  {
+    id: number;
+    appearanceCount: number;
+    nearestWords: Record<string, number>;
+  }
 >;
 
 export interface GameWordCloud {
