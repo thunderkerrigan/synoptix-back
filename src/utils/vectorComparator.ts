@@ -3,23 +3,30 @@ import w2v, { Model } from "word2vec";
 import { GameWordCloud, ShadowWord, WordCloud } from "../models/Word";
 import { makeHollowWord } from "./string+utils";
 import { findAllFormsForWord } from "../controllers/SynoptixController";
-import { connect, connection } from "mongoose";
+import { connect, Connection, connection, disconnect } from "mongoose";
+import { roundOff } from "./number+utils";
 
-let isLoading = false;
+let isModelLoaded = false;
+let isConnectedToDatabase = false;
 let model: Model;
+let db: Connection;
 
-connect(process.env.MONGO_DB_HOST, {
-  user: process.env.MONGO_DB_USER,
-  dbName: process.env.MONGO_DB_DATABASE,
-  pass: process.env.MONGO_DB_PASS,
-  maxPoolSize: 10, // Maintain up to 10 socket connections
-  // serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-  // socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-});
-
-connection.once("open", async () => {
+export const loadDatabase = async (): Promise<void> => {
+  if (db && db.readyState !== 0) {
+    return;
+  }
+  connect(process.env.MONGO_DB_HOST, {
+    user: process.env.MONGO_DB_USER,
+    dbName: process.env.MONGO_DB_DATABASE,
+    pass: process.env.MONGO_DB_PASS,
+    maxPoolSize: 10, // Maintain up to 10 socket connections
+    // serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+    // socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  });
+  db = await connection.asPromise();
   console.log("connected to database");
-});
+  isConnectedToDatabase = true;
+};
 
 const loadModel = async (): Promise<Model> => {
   return new Promise((resolve, reject) => {
@@ -38,22 +45,26 @@ const loadModel = async (): Promise<Model> => {
 };
 
 export const startLoadingModel = async () => {
-  isLoading = true;
+  isModelLoaded = true;
   model = await loadModel();
-  isLoading = false;
+  isModelLoaded = false;
 };
 
 startLoadingModel();
+loadDatabase();
 
-export const checkWordInModel = (word: string): Record<string, number> => {
+export const checkWordInModel = (
+  word: string,
+  nearestWordCount = 20
+): Record<string, number> => {
   const isANumber = !isNaN(parseFloat(word));
   const vector = model.getVector(word.toLocaleLowerCase());
   if (vector === null || isANumber) {
     return {};
   }
-  const nearestWords = model.getNearestWords(vector, 20);
+  const nearestWords = model.getNearestWords(vector, nearestWordCount);
   return nearestWords.reduce<Record<string, number>>((acc, cur) => {
-    acc[cur.word] = cur.dist;
+    acc[cur.word] = roundOff(cur.dist, 2);
     return acc;
   }, {});
 };
@@ -63,7 +74,7 @@ export const compareWordWithCloud = async (
   clouds: GameWordCloud,
   currentCache: Record<string, ShadowWord[]>
 ): Promise<{ score: ShadowWord[]; cache: Record<string, ShadowWord[]> }> => {
-  if (!model && !isLoading) {
+  if (!model && !isModelLoaded) {
     await startLoadingModel();
   }
   const convertedRequestedWord = parseFloat(requestedWord.toString());
@@ -111,9 +122,6 @@ export const compareWordWithCloud = async (
   );
 
   return { score: Object.values(words.score), cache: words.cache };
-  // return compareWord(requestedWord as string, clouds.wordCloud);
-  // const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
-  // const isRequestedWordANumber = !isNaN(parseInt(requestedWordLowerCased));
 };
 
 const compareWord = async (
@@ -126,16 +134,16 @@ const compareWord = async (
     return { score: currentCache[requestedWord], cache: currentCache };
   }
   const requestedWordLowerCased = requestedWord.toLocaleLowerCase();
-  if (model.getVector(requestedWordLowerCased) === null) {
-    // word does not exist in model; skipping useless search
-    return { score: [], cache: currentCache };
-  }
 
   const rawClouds = Object.keys(wordCloud).map<Promise<ShadowWord>>(
     async (comparedWord: string): Promise<ShadowWord> => {
       const comparedWordLowerCased = comparedWord.toLocaleLowerCase();
 
-      if (requestedWordLowerCased === comparedWordLowerCased) {
+      if (
+        requestedWord.localeCompare(comparedWord, "fr", {
+          sensitivity: "base",
+        }) === 0
+      ) {
         return {
           id: wordCloud[comparedWord].id,
           closestWord: comparedWord,
@@ -190,7 +198,7 @@ const compareNumber = (
         absoluteRequestedNumber,
         absoluteComparedNumber
       );
-      const similarity = lowestNumber / upperNumber;
+      const similarity = roundOff(lowestNumber / upperNumber, 2);
 
       return {
         id: numberCloud[comparedWord].id,
@@ -217,7 +225,12 @@ const compareSingleLetter = (
   const clouds = Object.keys(letterCloud)
     .map<ShadowWord>((comparedLetter: string, index): ShadowWord => {
       const comparedLetterLowerCased = comparedLetter.toLocaleLowerCase();
-      if (requestedLetterLowerCased === comparedLetterLowerCased) {
+
+      if (
+        comparedLetter.localeCompare(requestedLetter, "fr", {
+          sensitivity: "base",
+        }) === 0
+      ) {
         return {
           id: letterCloud[comparedLetter].id,
           closestWord: comparedLetter,
@@ -239,7 +252,7 @@ const compareSingleLetter = (
         absoluteRequestedNumber,
         absoluteComparedNumber
       );
-      const similarity = lowestNumber / upperNumber;
+      const similarity = roundOff(lowestNumber / upperNumber, 2);
       return {
         id: letterCloud[comparedLetter].id,
         closestWord: requestedLetter,

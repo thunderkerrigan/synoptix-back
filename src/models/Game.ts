@@ -70,7 +70,7 @@ export class Game implements Game {
       .match(WORDS_REG_EXP)
       .reduce<WordCloud>((set, item) => {
         if (!set[item]) {
-          const nearestWords = checkWordInModel(item);
+          const nearestWords = checkWordInModel(item, 30);
           set[item] = {
             id: Object.keys(set).length,
             appearanceCount: 1,
@@ -94,7 +94,7 @@ export class Game implements Game {
         return set;
       }, {});
     const wordCloud = Object.keys(allWordsCloud)
-      .filter((i) => i.length > 1 && isNaN(parseFloat(i)))
+      .filter((i) => Object.keys(allWordsCloud[i].nearestWords).length > 0)
       .reduce<WordCloud>((set, item) => {
         set[item] = allWordsCloud[item];
         return set;
