@@ -204,7 +204,7 @@ const compareNumber = (
         id: numberCloud[comparedWord].id,
         closestWord: requestedNumber.toString(),
         shadowWord: makeHollowWord(comparedWord),
-        similarity,
+        similarity: Math.min(similarity, 0.99),
       };
     })
     .filter(fewestSimilarityRateRequired(0.5));
