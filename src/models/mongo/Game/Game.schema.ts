@@ -1,15 +1,78 @@
-// import { Schema } from "mongoose";
-// import { IGameDocument } from "./Game.types";
+import { Schema } from "mongoose";
+import { IGameDocument } from "./Game.types";
+import { DateTime } from "luxon";
+import { randomWithRange } from "../../../utils/number+utils";
 
-// const WordSchema = new Schema<IGameDocument>({
-//   value: { type: String, required: true },
-//   linkedWord: { type: [String], required: true },
-// });
+const ShadowWordsCloudSchema = new Schema({
+  id: Number,
+  closestWord: String,
+  shadowWord: String,
+  similarity: Number,
+});
 
-// // WordSchema.statics.findOneContaining = function (
-// //   word: string
-// // ): Promise<IGameDocument> {
-// //   return this.findOne().where("value").equals(word).lean();
-// // };
+const WordCloudSchema = new Schema({
+  id: Number,
+  appearanceCount: Number,
+  nearestWords: Schema.Types.Mixed,
+});
 
-// export default WordSchema;
+const GameWordCloudSchema = new Schema({
+  allWordsCloud: {
+    type: Schema.Types.Mixed,
+  },
+  singleLetterCloud: {
+    type: Schema.Types.Mixed,
+  },
+  numberCloud: {
+    type: Schema.Types.Mixed,
+  },
+  wordCloud: {
+    type: Schema.Types.Mixed,
+  },
+});
+
+const GameSchema = new Schema<IGameDocument>({
+  _id: { type: Number, required: true },
+  date: { type: String, required: false },
+  title: { type: String, required: true },
+  foundByIDs: { type: [String], required: true },
+  redactedTitle: {
+    type: Schema.Types.Mixed,
+    required: true,
+  },
+  redactedSynopsis: {
+    type: Schema.Types.Mixed,
+    required: true,
+  },
+  solution: {
+    type: Schema.Types.Mixed,
+    required: true,
+  },
+  solutionPlainText: { type: String, required: true },
+  wordCloud: { type: GameWordCloudSchema, required: true },
+});
+
+GameSchema.methods.addDate = async function (date: DateTime) {
+  this.date = date.toISODate();
+  await this.save();
+};
+
+GameSchema.statics.findByDate = async function (date: DateTime) {
+  const game = await this.findOne({ date: date.toISODate() });
+  return game;
+};
+
+GameSchema.statics.addFinder = async function (userID: string, date: DateTime) {
+  const game = await this.findOne({ date: date.toISODate() });
+  if (game) {
+    game.foundByIDs.push(userID);
+    await game.save();
+  }
+};
+GameSchema.statics.findARandomOne = async function () {
+  const games = await this.find({ date: { $exists: false } });
+  const index = randomWithRange(0, games.length);
+  return games[index];
+};
+
+export default GameSchema;

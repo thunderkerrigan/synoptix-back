@@ -3,7 +3,10 @@ import fs from "fs";
 import wikitext, { parseTemplates, parseSections } from "mwn/build/wikitext";
 import {
   PARAGRAPHS_REG_EXP,
+  REF_REG_EXP,
+  SMALL_NOTE_REG_EXP,
   TABLE_MFSP_REG_EXP,
+  UNWANTED_TITLE_WORDS_REG_EXP,
   WIKI_COMMA_REG_EXP,
   WIKI_DATE_REG_EXP,
   WIKI_FILE_REG_EXP,
@@ -11,6 +14,7 @@ import {
   WIKI_LANGUAGE_REG_EXP,
   WIKI_OTHER_REG_EXP,
   WIKI_TEXT_REG_EXP,
+  WIKI_UNITE_REG_EXP,
 } from "../utils/Regexp";
 import {
   clearingASCIISpaceFromText,
@@ -60,6 +64,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
           section.header === "Intrigue" ||
           section.header === "Synopsis" ||
           section.header === "Résumé détaillé" ||
+          section.header === "Résumé" ||
           section.header === "Synopsis détaillé"
       )
       .reduce<Record<string, string>>((acc, section) => {
@@ -68,6 +73,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
     const text =
       section["Synopsis détaillé"] ||
       section["Résumé détaillé"] ||
+      section["Résumé"] ||
       section["Intrigue"] ||
       section["Synopsis"] ||
       "";
@@ -75,21 +81,25 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
     const sanitizedSynopsisWikiText = text
       .replace(WIKI_HEADER_REG_EXP, "")
       .replace(WIKI_FILE_REG_EXP, "")
-      .replace(WIKI_LANGUAGE_REG_EXP, "")
+      .replace(REF_REG_EXP, "")
+      .replace(SMALL_NOTE_REG_EXP, "")
+      .replace(WIKI_LANGUAGE_REG_EXP, (_, text) => text.split("|").pop())
       .replace(WIKI_COMMA_REG_EXP, "")
       .replace(WIKI_TEXT_REG_EXP, (_, text) => text.split("|").pop())
+      .replace(WIKI_UNITE_REG_EXP, (_, text) => text.split("|").join(" "))
       .replace(WIKI_DATE_REG_EXP, (_, text) => text.split("|").join(" "))
       .replace(WIKI_OTHER_REG_EXP, (_, text) => text.split("|").join(" "));
     const synopsisHTML = await wikipediaBot.parseWikitext(
       sanitizedSynopsisWikiText
     );
     const sanitizedResponse = pickupParagraphs(synopsisHTML);
+    const sanitizedSynopsis = clearingASCIISpaceFromText(
+      clearingDivFromText(clearingLinkFromText(sanitizedResponse))
+    );
     return {
       id: page.pageid,
       title: makeMovieTitle(page.title),
-      synopsis: clearingASCIISpaceFromText(
-        clearingDivFromText(clearingLinkFromText(sanitizedResponse))
-      ),
+      synopsis: sanitizedSynopsis,
     };
   }
   throw new Error("Movie not found");
@@ -172,4 +182,6 @@ const pickupParagraphs = (text: string): string => {
 };
 
 const makeMovieTitle = (movie: string) =>
-  "<p>" + movie.split("_").join(" ") + "</p>";
+  "<p>" +
+  movie.replace(UNWANTED_TITLE_WORDS_REG_EXP, "").split("_").join(" ") +
+  "</p>";

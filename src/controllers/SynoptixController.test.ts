@@ -1,4 +1,9 @@
 import { findAllFormsForWord } from "./SynoptixController";
+import { loadDatabase } from "./MongoController";
+
+beforeAll(async () => {
+  await loadDatabase();
+});
 
 describe("Words matcher", () => {
   const test: [string, string[]][] = [

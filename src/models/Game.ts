@@ -1,10 +1,11 @@
+import { checkWordInModel } from "../controllers/ModelController";
 import {
   FULL_REG_EXP,
   HTML_TAGS_REG_EXP,
   WORDS_REG_EXP,
 } from "../utils/Regexp";
 import { makeHollowWord } from "../utils/string+utils";
-import { checkWordInModel } from "../utils/vectorComparator";
+import { IGame } from "./mongo/Game/Game.types";
 import { GameWordCloud, ShadowWord, ShadowWordsCloud, WordCloud } from "./Word";
 
 export interface RedactedGame {
@@ -14,9 +15,10 @@ export interface RedactedGame {
   redactedSynopsis: ShadowWordsCloud;
 }
 
-export interface Game extends RedactedGame {
-  id: number;
+export interface Game extends Omit<RedactedGame, "gameID"> {
+  _id: number;
   title: string;
+  date?: String;
   foundByIDs: string[];
   solution: ShadowWordsCloud;
   solutionPlainText: string;
@@ -33,8 +35,9 @@ export interface Game extends RedactedGame {
 }
 
 export class Game implements Game {
-  id: number;
+  _id: number;
   title: string;
+  date?: String;
   foundByIDs: string[];
   redactedTitle: ShadowWordsCloud;
   redactedSynopsis: ShadowWordsCloud;
@@ -42,23 +45,31 @@ export class Game implements Game {
   solutionPlainText: string;
   wordCloud: GameWordCloud; // word cloud of the synopsis
   cache: Record<string, ShadowWord[]>;
-  constructor(id: number, title: string, synopsisText: string) {
-    this.id = id;
-    this.title = title;
-    this.foundByIDs = [];
-    this.solutionPlainText = synopsisText;
-    this.wordCloud = this.makeWordCloud(title + " " + synopsisText);
+  constructor(
+    _object: {
+      _id: number;
+      title: string;
+      solutionPlainText: string;
+    } & Partial<Game>
+  ) {
+    this._id = _object._id;
+    this.title = _object.title;
+    this.date = _object.date;
+    this.foundByIDs = _object.foundByIDs || [];
+    this.solutionPlainText = _object.solutionPlainText;
+    this.wordCloud =
+      _object.wordCloud ||
+      this.makeWordCloud(this.title + " " + this.solutionPlainText);
+    this.redactedTitle =
+      _object.redactedTitle ||
+      this.transformToShadowCloud(this.title, this.wordCloud);
     this.cache = {};
-    this.redactedTitle = this.transformToShadowCloud(title, this.wordCloud);
-    this.redactedSynopsis = this.transformToShadowCloud(
-      synopsisText,
-      this.wordCloud
-    );
-    this.solution = this.transformToShadowCloud(
-      synopsisText,
-      this.wordCloud,
-      0
-    );
+    this.redactedSynopsis =
+      _object.redactedSynopsis ||
+      this.transformToShadowCloud(this.solutionPlainText, this.wordCloud);
+    this.solution =
+      _object.solution ||
+      this.transformToShadowCloud(this.solutionPlainText, this.wordCloud, 0);
   }
   get foundBy() {
     return this.foundByIDs.length;
@@ -94,7 +105,7 @@ export class Game implements Game {
         return set;
       }, {});
     const wordCloud = Object.keys(allWordsCloud)
-      .filter((i) => Object.keys(allWordsCloud[i].nearestWords).length > 0)
+      .filter((i) => !Object.keys(numberCloud).includes(i))
       .reduce<WordCloud>((set, item) => {
         set[item] = allWordsCloud[item];
         return set;
@@ -143,7 +154,7 @@ export class Game implements Game {
   };
   redactedGame = (): RedactedGame => {
     return {
-      gameID: this.id,
+      gameID: this._id,
       foundBy: this.foundBy,
       redactedTitle: this.redactedTitle,
       redactedSynopsis: this.redactedSynopsis,
@@ -162,4 +173,17 @@ export class Game implements Game {
     }
     return true;
   };
+  get gameModel() {
+    return {
+      _id: this._id,
+      title: this.title,
+      date: this.date,
+      foundByIDs: this.foundByIDs,
+      solutionPlainText: this.solutionPlainText,
+      solution: this.solution,
+      wordCloud: this.wordCloud,
+      redactedTitle: this.redactedTitle,
+      redactedSynopsis: this.redactedSynopsis,
+    };
+  }
 }

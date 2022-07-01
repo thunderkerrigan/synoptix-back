@@ -23,7 +23,7 @@
     "declaration": true
     // "declarationMap": true
   },
-  "include": ["src"],
+  "include": ["src", ".jest/game.ts"],
   "exclude": ["__test__", "./**/*.test.*"]
   // "references": [{ "path": "../delta-green-core/src/index.ts" }]
 }

@@ -1,4 +1,4 @@
-import { Game } from "../../models/Game";
+import { Game } from "../src/models/Game";
 
 export const __TEST__GAME__: Omit<
   Game,
@@ -6,9 +6,9 @@ export const __TEST__GAME__: Omit<
   | "redactedGame"
   | "makeWordCloud"
   | "transformToShadowCloud"
+  | "gameModel"
 > = {
-  id: 2746588,
-  gameID: 2746588,
+  _id: 2746588,
   title: "<p>No Country for Old Men</p>",
   foundByIDs: [],
   foundBy: 0,
