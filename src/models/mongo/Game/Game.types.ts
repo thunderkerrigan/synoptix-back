@@ -20,5 +20,5 @@ export interface IGameDocument extends IGame {
 export interface IGameModel extends Model<IGameDocument> {
   findARandomOne: () => Promise<IGameDocument>;
   findByDate: (date: DateTime) => Promise<IGameDocument>;
-  addFinderToGame: (userID: string, date: DateTime) => Promise<void>;
+  addFinderToGame: (userID: string, id: number) => Promise<void>;
 }

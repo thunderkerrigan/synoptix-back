@@ -53,28 +53,42 @@ router.post(
     }>,
     res: Response
   ) => {
-    const { userID, word, wordIDs } = req.body;
-    // console.log('score', userID, word)
-    const { score, cache: updatedCache } = await compareWordWithCloud(
-      word,
-      currentGame.wordCloud,
-      currentGame.cache
-    );
+    try {
+      const { userID, word, wordIDs } = req.body;
+      // console.log('score', userID, word)
+      const { score, cache: updatedCache } = await compareWordWithCloud(
+        word,
+        currentGame.wordCloud,
+        currentGame.cache
+      );
 
-    const scoreIDs = score
-      .filter((word) => word.similarity === 1)
-      .map((word) => word.id.toString());
-    const candidateWordIDs: string[] = [
-      ...wordIDs.map((id) => id.toString()),
-      ...scoreIDs,
-    ];
-    const hasWon = currentGame.checkWinningCondition(userID, candidateWordIDs);
-    currentGame.cache = updatedCache;
-    return res.send({
-      score,
-      foundBy: currentGame.foundBy,
-      response: hasWon ? currentGame.solution : undefined,
-    });
+      const scoreIDs = score
+        .filter((word) => word.similarity === 1)
+        .map((word) => word.id.toString());
+      const candidateWordIDs: string[] = [
+        ...wordIDs.map((id) => id.toString()),
+        ...scoreIDs,
+      ];
+      const hasWon = currentGame.checkWinningCondition(
+        userID,
+        candidateWordIDs
+      );
+      currentGame.cache = updatedCache;
+      if (hasWon) {
+        await GameModel.addFinderToGame(userID, currentGame._id);
+      }
+      return res.send({
+        score,
+        foundBy: currentGame.foundBy,
+        response: hasWon ? currentGame.solution : undefined,
+      });
+    } catch (error) {
+      return res.send({
+        score: [],
+        foundBy: currentGame.foundBy,
+        response: undefined,
+      });
+    }
   }
 );
 

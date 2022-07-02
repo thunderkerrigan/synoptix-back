@@ -65,8 +65,8 @@ GameSchema.statics.findByDate = async function (date: DateTime) {
   return game;
 };
 
-GameSchema.statics.addFinder = async function (userID: string, date: DateTime) {
-  const game = await this.findOne({ date: date.toISODate() });
+GameSchema.statics.addFinderToGame = async function (userID: string, id: number) {
+  const game = await this.findById(id);
   if (game) {
     game.foundByIDs.push(userID);
     await game.save();
