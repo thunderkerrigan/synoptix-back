@@ -16,20 +16,23 @@ const WordCloudSchema = new Schema({
   nearestWords: Schema.Types.Mixed,
 });
 
-const GameWordCloudSchema = new Schema({
-  allWordsCloud: {
-    type: Schema.Types.Mixed,
+const GameWordCloudSchema = new Schema(
+  {
+    allWordsCloud: {
+      type: Schema.Types.Mixed,
+    },
+    singleLetterCloud: {
+      type: Schema.Types.Mixed,
+    },
+    numberCloud: {
+      type: Schema.Types.Mixed,
+    },
+    wordCloud: {
+      type: Schema.Types.Mixed,
+    },
   },
-  singleLetterCloud: {
-    type: Schema.Types.Mixed,
-  },
-  numberCloud: {
-    type: Schema.Types.Mixed,
-  },
-  wordCloud: {
-    type: Schema.Types.Mixed,
-  },
-});
+  { minimize: false }
+);
 
 const GameSchema = new Schema<IGameDocument>({
   _id: { type: Number, required: true },
