@@ -77,7 +77,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
       section["Intrigue"] ||
       section["Synopsis"] ||
       "";
-
+    const untreatedSynopsis = await wikipediaBot.parseWikitext(text);
     const sanitizedSynopsisWikiText = text
       .replace(WIKI_HEADER_REG_EXP, "")
       .replace(WIKI_FILE_REG_EXP, "")
@@ -100,6 +100,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
       id: page.pageid,
       title: makeMovieTitle(page.title),
       synopsis: sanitizedSynopsis,
+      untreatedSynopsis,
     };
   }
   throw new Error("Movie not found");

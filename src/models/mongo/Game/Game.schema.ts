@@ -65,7 +65,10 @@ GameSchema.statics.findByDate = async function (date: DateTime) {
   return game;
 };
 
-GameSchema.statics.addFinderToGame = async function (userID: string, id: number) {
+GameSchema.statics.addFinderToGame = async function (
+  userID: string,
+  id: number
+) {
   const game = await this.findById(id);
   if (game) {
     game.foundByIDs.push(userID);
@@ -73,7 +76,9 @@ GameSchema.statics.addFinderToGame = async function (userID: string, id: number)
   }
 };
 GameSchema.statics.findARandomOne = async function () {
-  const games = await this.find({ date: { $exists: false } });
+  const games = await this.find({
+    date: { $exists: false },
+  });
   const index = randomWithRange(0, games.length);
   return games[index];
 };
