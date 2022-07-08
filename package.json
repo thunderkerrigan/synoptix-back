@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon --max-old-space-size=8192 ./src/index.js",
+    "start": "node --max-old-space-size=8192 ./dist/src/index.js",
     "tsc": "tsc",
     "test": "jest",
     "build": "tsc -w",

@@ -10,4 +10,4 @@ COPY ./frWac_non_lem_no_postag_no_phrase_200_skip_cut100.bin .
 COPY .env .env
 RUN yarn tsc
 EXPOSE 4000
-CMD [ "yarn", "start" ]
+CMD [ "yarn", "start"]
