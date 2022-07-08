@@ -1,4 +1,4 @@
-FROM node
+FROM node:18
 
 WORKDIR /usr/src/app
 COPY package*.json .
@@ -8,8 +8,6 @@ RUN yarn
 COPY ./src ./src
 COPY ./frWac_non_lem_no_postag_no_phrase_200_skip_cut100.bin .
 COPY .env .env
-RUN yarn prod
+RUN yarn tsc
 EXPOSE 4000
-WORKDIR /usr/src/app
-
-CMD [ "yarn", "prod" ]
+CMD [ "yarn", "start" ]
