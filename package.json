@@ -3,12 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon  --max-old-space-size=8192 ./dist/src/index.js",
-    "prod": "tsc",
+    "start": "nodemon --max-old-space-size=8192 ./src/index.js",
     "tsc": "tsc",
     "test": "jest",
     "build": "tsc -w",
-    "dev": "concurrently \"yarn:build\" \"yarn:start\""
+    "dev": "ts-node ./src/index.ts",
+    "debug": "nodemon",
+    "prod": "concurrently \"yarn:build\" \"yarn:start\""
   },
   "dependencies": {
     "@mongoosejs/double": "^0.2.0",

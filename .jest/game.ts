@@ -9,6 +9,8 @@ export const __TEST__GAME__: Omit<
   | "gameModel"
 > = {
   _id: 2746588,
+  dayNumber: 1,
+  lastMovie: "",
   title: "<p>No Country for Old Men</p>",
   foundByIDs: [],
   foundBy: 0,

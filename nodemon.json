@@ -1,0 +1,7 @@
+{
+  "ignore": [".git", "node_modules", "dist", "build"],
+  "watch": ["./src"],
+  "exec": "npm run dev",
+  "ext": "ts",
+  "config": "tsconfig.json"
+}

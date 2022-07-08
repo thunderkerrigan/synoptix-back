@@ -17,11 +17,14 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    // "typeRoots": ["node_modules/@types", "src/customTypes"],
+    // "typeRoots": ["node_modules/@types", "./src/@types"],
     // disable in prod
     "sourceMap": true,
     "declaration": true
     // "declarationMap": true
+  },
+  "ts-node": {
+    "files": true
   },
   "include": ["src", ".jest/game.ts"],
   "exclude": ["__test__", "./**/*.test.*"]

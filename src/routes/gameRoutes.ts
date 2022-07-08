@@ -9,20 +9,41 @@ const router = Router();
 let currentGame: Game;
 
 const getGame = async () => {
-  const todayISODate = DateTime.now();
-  if (currentGame && currentGame.date === todayISODate.toISODate()) {
-    return currentGame;
-  }
-  const existingGame = await GameModel.findByDate(todayISODate);
-  if (existingGame) {
-    currentGame = new Game(existingGame);
-    return currentGame;
-  }
-  const newGame = await GameModel.findARandomOne();
-  if (newGame) {
-    await newGame.addDate(DateTime.now());
-    currentGame = new Game(newGame);
-    return currentGame;
+  try {
+    const todayISODate = DateTime.now();
+    if (currentGame && currentGame.date === todayISODate.toISODate()) {
+      return currentGame;
+    }
+    const existingGame = await GameModel.findByDate(todayISODate);
+    const dayNumber = await GameModel.countDocuments({
+      date: { $exists: true },
+    });
+    const lastMovie = await GameModel.findByDate(
+      todayISODate.minus({ days: 1 })
+    );
+    if (existingGame) {
+      const plainExistingGame = existingGame.toObject();
+
+      currentGame = new Game({
+        ...plainExistingGame,
+        dayNumber,
+        lastMovie: lastMovie.title || "",
+      });
+      return currentGame;
+    }
+    const newGame = await GameModel.findARandomOne();
+    if (newGame) {
+      await newGame.addDate(DateTime.now());
+      const plainNewGame = newGame.toObject();
+      currentGame = new Game({
+        ...plainNewGame,
+        dayNumber,
+        lastMovie: lastMovie.title || "",
+      });
+      return currentGame;
+    }
+  } catch (error) {
+    console.log(error);
   }
 };
 

@@ -15,10 +15,11 @@ export interface IGame {
 export interface IGameDocument extends IGame {
   // TODO: specific method on current object
   addDate: (date: DateTime) => Promise<void>;
+  toObject: () => IGame;
   // checkPassword: (password: string) => Promise<boolean>
 }
 export interface IGameModel extends Model<IGameDocument> {
   findARandomOne: () => Promise<IGameDocument>;
-  findByDate: (date: DateTime) => Promise<IGameDocument>;
+  findByDate: (date: DateTime) => Promise<IGameDocument | undefined>;
   addFinderToGame: (userID: string, id: number) => Promise<void>;
 }

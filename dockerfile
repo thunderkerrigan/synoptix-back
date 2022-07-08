@@ -6,11 +6,10 @@ RUN apt-get -y update
 COPY ./tsconfig.json .
 RUN yarn
 COPY ./src ./src
-# COPY ./frWiki_no_phrase_no_postag_700_cbow_cut100.bin .
 COPY ./frWac_non_lem_no_postag_no_phrase_200_skip_cut100.bin .
 COPY .env .env
 RUN yarn prod
 EXPOSE 4000
 WORKDIR /usr/src/app
-# CMD [ "node", "dist/src/index.js" ]
-CMD [ "yarn", "dev" ]
+
+CMD [ "yarn", "prod" ]

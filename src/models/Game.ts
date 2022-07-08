@@ -10,6 +10,7 @@ import { GameWordCloud, ShadowWord, ShadowWordsCloud, WordCloud } from "./Word";
 
 export interface RedactedGame {
   gameID: number;
+  lastMovie: string;
   foundBy: number;
   redactedTitle: ShadowWordsCloud;
   redactedSynopsis: ShadowWordsCloud;
@@ -17,6 +18,7 @@ export interface RedactedGame {
 
 export interface Game extends Omit<RedactedGame, "gameID"> {
   _id: number;
+  dayNumber: number;
   title: string;
   date?: String;
   foundByIDs: string[];
@@ -55,6 +57,8 @@ export class Game implements Game {
     this._id = _object._id;
     this.title = _object.title;
     this.date = _object.date;
+    this.dayNumber = _object.dayNumber || 0;
+    this.lastMovie = _object.lastMovie || "";
     this.foundByIDs = _object.foundByIDs || [];
     this.solutionPlainText = _object.solutionPlainText;
     this.wordCloud =
@@ -154,7 +158,8 @@ export class Game implements Game {
   };
   redactedGame = (): RedactedGame => {
     return {
-      gameID: this._id,
+      gameID: this.dayNumber,
+      lastMovie: this.lastMovie.replace(/<\/?p>/g, ""),
       foundBy: this.foundBy,
       redactedTitle: this.redactedTitle,
       redactedSynopsis: this.redactedSynopsis,
