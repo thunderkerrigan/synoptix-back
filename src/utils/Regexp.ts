@@ -15,12 +15,12 @@ export const TABLE_MFSP_REG_EXP = /(?:\|)(ms|fs|fp|mp)(?:=)(.*)/gu;
 
 export const REF_REG_EXP = /(\n?<ref(?:.*?)??>.+<\/ref>\n?)/gmu;
 export const SMALL_NOTE_REG_EXP = /(\n?<small>Note.+<\/small>\n?)/gmu;
-export const WIKI_HEADER_REG_EXP = /(={2,3} .+ ={2,3}\n)/gu;
+export const WIKI_HEADER_REG_EXP = /(={2,3} .+ ={2,3}\n?)/gu;
 export const WIKI_TEXT_REG_EXP = /(?:\[\[)(.+?)(?:\]\])/gu;
 export const WIKI_LANGUAGE_REG_EXP = /(?:\{\{langue\|)(?:.+?\|)(.*?)(?:\}\})/gu;
 export const WIKI_COMMA_REG_EXP = /(?:\{\{)(,)(?:\}\})/gu;
 export const WIKI_UNITE_REG_EXP = /(?:\{\{unité\|)(.*)(?:\}\})/giu;
 export const WIKI_DATE_REG_EXP = /(?:\{\{date\|)(.*?)(?:\}\})/gu;
 export const WIKI_OTHER_REG_EXP = /(?:\{\{)(.*?)(?:\}\})/gu;
-export const WIKI_FILE_REG_EXP = /\n(\[\[Fichier:.+?\]\]\n)/gu;
+export const WIKI_FILE_REG_EXP = /\n?(\[\[Fichier:.+\]\]\n?)/gu;
 // (?:\[\[)(?:(?:.*?\|)??)?(.*?)(?:\]\])
