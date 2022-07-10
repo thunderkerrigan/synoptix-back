@@ -3,19 +3,6 @@ import { IGameDocument } from "./Game.types";
 import { DateTime } from "luxon";
 import { randomWithRange } from "../../../utils/number+utils";
 
-const ShadowWordsCloudSchema = new Schema({
-  id: Number,
-  closestWord: String,
-  shadowWord: String,
-  similarity: Number,
-});
-
-const WordCloudSchema = new Schema({
-  id: Number,
-  appearanceCount: Number,
-  nearestWords: Schema.Types.Mixed,
-});
-
 const GameWordCloudSchema = new Schema(
   {
     allWordsCloud: {

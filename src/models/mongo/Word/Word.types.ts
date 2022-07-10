@@ -10,5 +10,5 @@ export interface IWordDocument extends IWord {
   // checkPassword: (password: string) => Promise<boolean>
 }
 export interface IWordModel extends Model<IWordDocument> {
-  findOneContaining: (word: string) => Promise<IWordDocument>;
+  findOneContaining: (word: string) => Promise<IWordDocument | undefined>;
 }

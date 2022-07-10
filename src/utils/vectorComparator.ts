@@ -38,11 +38,11 @@ export const compareWordWithCloud = async (
     (acc, curr) => {
       curr.score.forEach((shadowWord) => {
         const existingShadowWord = acc.score[shadowWord.id];
-        if (
+        const isMissingOrBetter =
           !existingShadowWord ||
           (existingShadowWord &&
-            existingShadowWord.similarity < shadowWord.similarity)
-        ) {
+            existingShadowWord.similarity < shadowWord.similarity);
+        if (isMissingOrBetter) {
           acc.score[shadowWord.id] = shadowWord;
         }
       });
@@ -68,8 +68,6 @@ const compareWord = async (
 
   const clouds = Object.keys(wordCloud).map<ShadowWord>(
     (comparedWord: string): ShadowWord => {
-      const comparedWordLowerCased = comparedWord.toLocaleLowerCase();
-
       if (
         requestedWord.localeCompare(comparedWord, "fr", {
           sensitivity: "base",
@@ -82,7 +80,7 @@ const compareWord = async (
           similarity: 1,
         };
       }
-      const { nearestWords = {} } = wordCloud[comparedWord];
+      const { nearestWords } = wordCloud[comparedWord];
       return {
         id: wordCloud[comparedWord].id,
         closestWord: requestedWord,

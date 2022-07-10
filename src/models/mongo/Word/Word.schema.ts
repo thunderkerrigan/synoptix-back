@@ -8,7 +8,7 @@ const WordSchema = new Schema<IWordDocument>({
 
 WordSchema.statics.findOneContaining = function (
   word: string
-): Promise<IWordDocument> {
+): Promise<IWordDocument | undefined> {
   return this.findOne().where("value").equals(word).lean();
 };
 

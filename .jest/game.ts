@@ -7,6 +7,7 @@ export const __TEST__GAME__: Omit<
   | "makeWordCloud"
   | "transformToShadowCloud"
   | "gameModel"
+  | "gameNumber"
 > = {
   _id: 2746588,
   dayNumber: 1,
@@ -11438,6 +11439,7 @@ export const __TEST__GAME__: Omit<
           walter: 0.66,
         },
       },
+      Chigurh: { id: 66, appearanceCount: 9, nearestWords: {} },
       Javier: {
         id: 67,
         appearanceCount: 1,

@@ -2,7 +2,9 @@ import { GameWordCloud, ShadowWord } from "../models/Word";
 import { compareWordWithCloud } from "../utils/vectorComparator";
 import { loadDatabase } from "../controllers/MongoController";
 import { __TEST__GAME__ } from "../../.jest/game";
+import { findAllFormsForWord } from "../controllers/SynoptixController";
 
+jest.mock("../controllers/SynoptixController");
 jest.setTimeout(10000);
 describe("compare letter", () => {
   const _demoWordCloud = __TEST__GAME__.wordCloud;
@@ -67,6 +69,114 @@ describe("compare number", () => {
       expect(hasOneShadowWordWithSimilarityEqualsToOne).toBe(expected);
       const similarity = score[0] ? score[0].similarity : 0;
       expect(similarity).toBe(value);
+    }
+  );
+});
+
+describe("compare word", () => {
+  beforeEach(async () => {
+    jest.mocked(findAllFormsForWord).mockReset();
+  });
+  const _demoWordCloud = __TEST__GAME__.wordCloud;
+  const _poursuivre_score: ShadowWord[] = [
+    {
+      id: 43,
+      closestWord: "poursuivre",
+      shadowWord: "         ",
+      similarity: 0.66,
+    },
+    {
+      id: 72,
+      closestWord: "poursuivre",
+      shadowWord: "      ",
+      similarity: 0.61,
+    },
+    {
+      id: 215,
+      closestWord: "poursuivre",
+      shadowWord: "          ",
+      similarity: 1,
+    },
+  ];
+  const _mère_score: ShadowWord[] = [
+    {
+      id: 52,
+      closestWord: "mère",
+      shadowWord: "     ",
+      similarity: 0.72,
+    },
+    {
+      id: 59,
+      closestWord: "mère",
+      shadowWord: "    ",
+      similarity: 1,
+    },
+    {
+      id: 224,
+      closestWord: "mère",
+      shadowWord: "    ",
+      similarity: 0.82,
+    },
+  ];
+  const _Chigurh_score: ShadowWord[] = [
+    {
+      id: 66,
+      closestWord: "Chigurh",
+      shadowWord: "       ",
+      similarity: 1,
+    },
+  ];
+  const testArray: [string, GameWordCloud, ShadowWord[]][] = [
+    ["poursuivre", _demoWordCloud, _poursuivre_score],
+    ["mère", _demoWordCloud, _mère_score],
+    ["Chigurh", _demoWordCloud, _Chigurh_score],
+  ];
+  it.each(testArray)(
+    "%s should match",
+    async (requestedWord, wordCloud, result) => {
+      jest
+        .mocked(findAllFormsForWord)
+        .mockImplementation(async () => [requestedWord]);
+      const { score } = await compareWordWithCloud(
+        requestedWord,
+        wordCloud,
+        {}
+      );
+      expect(jest.mocked(findAllFormsForWord)).toHaveBeenCalledTimes(1);
+      expect(score).toEqual(result);
+    }
+  );
+});
+
+describe("compare word with cache", () => {
+  const _demoWordCloud = __TEST__GAME__.wordCloud;
+  const cache = {
+    le: [{ id: 1, closestWord: "le", shadowWord: "  ", similarity: 1 }],
+    100: [{ id: 100, closestWord: "1", shadowWord: "   ", similarity: 1 }],
+    l: [{ id: 1, closestWord: "l", shadowWord: " ", similarity: 1 }],
+  };
+  const testArray: [
+    string,
+    GameWordCloud,
+    Record<string, ShadowWord[]>,
+    ShadowWord[]
+  ][] = [
+    ["le", _demoWordCloud, cache, cache.le],
+    ["l", _demoWordCloud, cache, cache.l],
+    ["100", _demoWordCloud, cache, cache[100]],
+  ];
+  it.each(testArray)(
+    "should match",
+    async (requestedWord, wordCloud, cache, result) => {
+      jest
+        .mocked(findAllFormsForWord)
+        .mockImplementation(async () => [requestedWord]);
+      const { score } = await compareWordWithCloud(
+        requestedWord,
+        wordCloud,
+        cache
+      );
+      expect(score).toEqual(result);
     }
   );
 });
