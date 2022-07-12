@@ -27,7 +27,7 @@ const getGame = async () => {
       currentGame = new Game({
         ...plainExistingGame,
         dayNumber,
-        lastMovie: lastMovie.title || "",
+        lastMovie: lastMovie ? lastMovie.title : "",
       });
       return currentGame;
     }
@@ -38,7 +38,7 @@ const getGame = async () => {
       currentGame = new Game({
         ...plainNewGame,
         dayNumber,
-        lastMovie: lastMovie.title || "",
+        lastMovie: lastMovie ? lastMovie.title : "",
       });
       return currentGame;
     }
