@@ -54,7 +54,7 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
   // const response = await wikipediaBot.parseTitle(findNearest[0].title, {
   //   section: "1", // synopsis is usually the first section
   // });
-  const foundMovieCandidate = findNearest[0].title;
+  const foundMovieCandidate = findNearest[0] ? findNearest[0].title : undefined;
   if (foundMovieCandidate) {
     const page = await wikipediaBot.read(foundMovieCandidate);
     const { content } = page.revisions[0];
@@ -107,16 +107,14 @@ export const findNewMovie = async (movie: string): Promise<WikipediaMovie> => {
 };
 
 export const findAllFormsForWord = async (word: string): Promise<string[]> => {
-  if (!wiktionaryBot.loggedIn) {
-    await wiktionaryBot.login();
-  }
-  const cachedWord = await WordModel.findOneContaining(word);
-  if (cachedWord) {
-    // console.log("Found in cache");
-
-    return cachedWord.linkedWord;
-  }
   try {
+    if (!wiktionaryBot.loggedIn) {
+      await wiktionaryBot.login();
+    }
+    const cachedWord = await WordModel.findOneContaining(word);
+    if (cachedWord) {
+      return cachedWord.linkedWord;
+    }
     const lemma: SPARQLResponse<"l"> = await wiktionaryBot.sparqlQuery(
       LEMATIZE_WORD_QUERY(word),
       "https://query.wikidata.org/sparql",
@@ -172,7 +170,6 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
       return newWords;
     }
   } catch (error) {
-    console.log(error);
     return [word.toLocaleLowerCase()];
   }
 };

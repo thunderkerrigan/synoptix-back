@@ -13,8 +13,8 @@ describe("Words matcher; no cache", () => {
     ["le", ["le", "la", "les", "l"]],
     ["la", ["la", "le", "les", "l"]],
     ["les", ["la", "le", "les", "l"]],
-    // ["policier", ["policier", "policiers", "policières", "policière"]],
-    // ["policières", ["policier", "policiers", "policières", "policière"]],
+    ["policier", ["policier", "policiers", "policières", "policière"]],
+    ["policières", ["policier", "policiers", "policières", "policière"]],
   ];
   it.each(test)(
     "should find all form for a word",
@@ -26,6 +26,33 @@ describe("Words matcher; no cache", () => {
       expect(forms.sort()).toStrictEqual(expected.sort());
     }
   );
+  it.each(test)(
+    "should return the requested word because of error",
+    async (requestedWord) => {
+      jest.mocked(WordModel.findOneContaining).mockImplementation(() => {
+        return Promise.reject(new Error("random issue for test purpose."));
+      });
+      const forms = await findAllFormsForWord(requestedWord);
+      expect(forms.sort()).toStrictEqual([requestedWord]);
+    }
+  );
+  it("should return the requested word because it does not exist in wikimedia", async () => {
+    jest.mocked(WordModel.findOneContaining).mockImplementation(() => {
+      return Promise.resolve(undefined);
+    });
+    const requestedWord = "tirelipinpon";
+    const forms = await findAllFormsForWord(requestedWord);
+    expect(forms.sort()).toStrictEqual([requestedWord]);
+  });
+  it("should return the cached linked words", async () => {
+    const requestedWord = "policier";
+    const result = ["policier", "policiers", "policières", "policière"];
+    jest.mocked(WordModel.findOneContaining).mockImplementation(() => {
+      return Promise.resolve({ value: requestedWord, linkedWord: result });
+    });
+    const forms = await findAllFormsForWord(requestedWord);
+    expect(forms.sort()).toStrictEqual(result);
+  });
 });
 
 describe("find movie", () => {
@@ -89,5 +116,48 @@ describe("find movie", () => {
     };
     const film = await findNewMovie("Inglourious Basterds");
     expect(film).toStrictEqual(result);
+  });
+
+  it("should find the movie Edward aux mains d'argent", async () => {
+    const result = {
+      id: 103704,
+      title: "<p>Edward aux mains d'argent</p>",
+      synopsis: `<p>Une grand-mère raconte une histoire à sa petite-fille pour lui expliquer d'où vient la neige qui tombe sur la ville. Cette histoire commence avec un jeune homme appelé Edward (Johnny Depp) créé par un inventeur (Vincent Price) vivant seul dans un sombre château perché sur une colline. Mais l'inventeur meurt avant d'avoir pu achever son œuvre, laissant Edward avec des ciseaux aux lames extrêmement acérées à la place des mains. Edward vit donc seul dans ce sinistre château jusqu'au jour où Peg Boggs (Dianne Wiest), représentante en cosmétiques Avon, découvre le château et, poussée par la curiosité, se présente à sa porte. Voyant que le jeune homme, timide et inoffensif, vit seul sans avoir le moindre lien avec le monde qui l'entoure, elle décide de l'emmener au sein de son foyer situé dans une tranquille banlieue résidentielle. Edward commence alors à partager la vie de Peg, de son mari Bill (Alan Arkin) et de leur fils Kevin (Robert Oliveri) âgé de douze ans. Il devient très vite le nouveau centre d'intérêt du quartier et est d'abord accueilli à bras ouverts, ses talents de tailleur de haies et de coiffeur lui valant l'admiration et les sollicitations de toutes les voisines.
+</p><p>Edward tombe également amoureux de Kim (Winona Ryder), la fille aînée de Peg. Les seuls résidents qui éprouvent instantanément de la répulsion pour Edward sont Esmeralda (O-Lan Jones), une fanatique religieuse, et Jim (Anthony Michael Hall), le petit ami de Kim. Joyce (Kathy Baker), une amie de Peg très entreprenante, tente de séduire Edward, causant un accès de panique chez le jeune homme. Jim pousse ensuite Edward à entrer par effraction chez ses parents pour y dérober de l'argent mais l'alarme se déclenche et Edward est arrêté par la police, avant d'être relâché. Cet incident provoque la colère de Kim, qui reproche à Jim d'avoir piégé Edward, et vaut à ce dernier d'être désormais vu avec méfiance par la communauté du quartier. De plus, Joyce raconte à qui veut l'entendre qu'Edward a tenté de la violer. Les membres de la famille Boggs restent les seuls à soutenir Edward et eux aussi sont mis à l'écart.
+</p><p>Le soir de Noël, Edward crée une sculpture de glace, provoquant ainsi un effet de neige qui tombe du ciel, pour le plus grand plaisir de Kim. Jim, jaloux, intervient à ce moment et Edward blesse accidentellement Kim à la main. Jim s'en prend aussitôt à Edward, qui quitte les lieux. Edward est recherché par les habitants du quartier et sauve Kevin en le poussant du chemin d'un véhicule qui allait l'écraser. Mais, ce faisant, il blesse le garçon avec ses ciseaux et les résidents croient à une nouvelle agression de sa part. Edward s'enfuit jusqu'au château, où il est rejoint par Kim. Mais Jim a suivi la jeune fille et s'en prend une nouvelle fois à eux. Quand il frappe Kim, Edward le poignarde avec une de ses lames et Jim fait une chute mortelle. Edward fait ses adieux à Kim, qui l'embrasse et lui avoue son amour. Elle raconte ensuite aux habitants que Jim et Edward se sont entretués et leur présente pour preuve une main en forme de ciseaux similaire à celles d'Edward. La vieille dame qui raconte l'histoire, qui s'avère être Kim, termine en disant à sa petite-fille qu'elle n'a jamais revu Edward, ne voulant pas que celui-ci la voie vieillir. Edward vit toujours dans le château et, étant une création artificielle, n'est pas affecté par les effets du temps. Il provoque parfois des chutes de flocons de neige sur le quartier en travaillant sur ses sculptures de glace : ainsi, Kim sait qu'il est toujours en vie.
+</p><p> 
+</p>`,
+      untreatedSynopsis: `<div class="mw-parser-output"><h2><span class="mw-headline" id="Synopsis">Synopsis</span></h2>
+<p>Une grand-mère raconte une histoire à sa petite-fille pour lui expliquer d'où vient la neige qui tombe sur la ville. Cette histoire commence avec un jeune homme appelé Edward (<a href="/wiki/Johnny_Depp" title="Johnny Depp">Johnny Depp</a>) créé par un inventeur (<a href="/wiki/Vincent_Price" title="Vincent Price">Vincent Price</a>) vivant seul dans un sombre château perché sur une colline. Mais l'inventeur meurt avant d'avoir pu achever son œuvre, laissant Edward avec des ciseaux aux lames extrêmement acérées à la place des mains. Edward vit donc seul dans ce sinistre château jusqu'au jour où Peg Boggs (<a href="/wiki/Dianne_Wiest" title="Dianne Wiest">Dianne Wiest</a>), représentante en cosmétiques <a href="/wiki/Avon_Products" title="Avon Products">Avon</a>, découvre le château et, poussée par la curiosité, se présente à sa porte. Voyant que le jeune homme, timide et inoffensif, vit seul sans avoir le moindre lien avec le monde qui l'entoure, elle décide de l'emmener au sein de son foyer situé dans une tranquille banlieue résidentielle. Edward commence alors à partager la vie de Peg, de son mari Bill (<a href="/wiki/Alan_Arkin" title="Alan Arkin">Alan Arkin</a>) et de leur fils Kevin (<a href="/wiki/Robert_Oliveri" title="Robert Oliveri">Robert Oliveri</a>) âgé de douze ans. Il devient très vite le nouveau centre d'intérêt du quartier et est d'abord accueilli à bras ouverts, ses talents de tailleur de haies et de coiffeur lui valant l'admiration et les sollicitations de toutes les voisines.
+</p><p>Edward tombe également amoureux de Kim (<a href="/wiki/Winona_Ryder" title="Winona Ryder">Winona Ryder</a>), la fille aînée de Peg. Les seuls résidents qui éprouvent instantanément de la répulsion pour Edward sont Esmeralda (<a href="/wiki/O-Lan_Jones" title="O-Lan Jones">O-Lan Jones</a>), une fanatique religieuse, et Jim (<a href="/wiki/Anthony_Michael_Hall" title="Anthony Michael Hall">Anthony Michael Hall</a>), le petit ami de Kim. Joyce (<a href="/wiki/Kathy_Baker" title="Kathy Baker">Kathy Baker</a>), une amie de Peg très entreprenante, tente de séduire Edward, causant un accès de panique chez le jeune homme. Jim pousse ensuite Edward à entrer par effraction chez ses parents pour y dérober de l'argent mais l'alarme se déclenche et Edward est arrêté par la police, avant d'être relâché. Cet incident provoque la colère de Kim, qui reproche à Jim d'avoir piégé Edward, et vaut à ce dernier d'être désormais vu avec méfiance par la communauté du quartier. De plus, Joyce raconte à qui veut l'entendre qu'Edward a tenté de la violer. Les membres de la famille Boggs restent les seuls à soutenir Edward et eux aussi sont mis à l'écart.
+</p><p>Le soir de <a href="/wiki/No%C3%ABl" title="Noël">Noël</a>, Edward crée une sculpture de glace, provoquant ainsi un effet de neige qui tombe du ciel, pour le plus grand plaisir de Kim. Jim, jaloux, intervient à ce moment et Edward blesse accidentellement Kim à la main. Jim s'en prend aussitôt à Edward, qui quitte les lieux. Edward est recherché par les habitants du quartier et sauve Kevin en le poussant du chemin d'un véhicule qui allait l'écraser. Mais, ce faisant, il blesse le garçon avec ses ciseaux et les résidents croient à une nouvelle agression de sa part. Edward s'enfuit jusqu'au château, où il est rejoint par Kim. Mais Jim a suivi la jeune fille et s'en prend une nouvelle fois à eux. Quand il frappe Kim, Edward le poignarde avec une de ses lames et Jim fait une chute mortelle. Edward fait ses adieux à Kim, qui l'embrasse et lui avoue son amour. Elle raconte ensuite aux habitants que Jim et Edward se sont entretués et leur présente pour preuve une main en forme de ciseaux similaire à celles d'Edward. La vieille dame qui raconte l'histoire, qui s'avère être Kim, termine en disant à sa petite-fille qu'elle n'a jamais revu Edward, ne voulant pas que celui-ci la voie vieillir. Edward vit toujours dans le château et, étant une création artificielle, n'est pas affecté par les effets du temps. Il provoque parfois des chutes de flocons de neige sur le quartier en travaillant sur ses sculptures de glace&#160;: ainsi, Kim sait qu'il est toujours en vie.
+</p><p><br />
+</p></div>`,
+    };
+    const film = await findNewMovie("Edward aux mains d'argent");
+    expect(film).toStrictEqual(result);
+  });
+  it("should find the movie Austin Powers", async () => {
+    const result = {
+      id: 124701,
+      title: "<p>Austin Powers</p>",
+      synopsis: `<p>En 1967, Austin Powers, le meilleur des agents secrets britanniques, se fait congeler après que son ennemi juré, le Docteur Denfer, s'est enfui dans l'espace. Trente ans après, en 1997, les deux ennemis sont décongelés et un nouvel affrontement se prépare.
+</p><p> 
+</p>`,
+      untreatedSynopsis: `<div class="mw-parser-output"><h2><span class="mw-headline" id="Synopsis">Synopsis</span></h2>
+<p>En <a href="/wiki/1967" title="1967">1967</a>, Austin Powers, le meilleur des agents secrets britanniques, se fait congeler après que son ennemi juré, le Docteur Denfer, s'est enfui dans l'espace. Trente ans après, en <a href="/wiki/1997" title="1997">1997</a>, les deux ennemis sont décongelés et un nouvel affrontement se prépare.
+</p><p><br />
+</p></div>`,
+    };
+    const film = await findNewMovie("Austin Powers");
+    expect(film).toStrictEqual(result);
+  });
+  it("should not find a movie ", async () => {
+    expect.assertions(1);
+    try {
+      await findNewMovie("lorem ipsum dolor sit amet");
+    } catch (error) {
+      expect(error).toEqual(Error("Movie not found"));
+    }
   });
 });
