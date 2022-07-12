@@ -57,7 +57,7 @@ GameSchema.statics.addFinderToGame = async function (
   id: number
 ) {
   const game = await this.findById(id);
-  if (game) {
+  if (game && !game.foundByIDs.includes(userID)) {
     game.foundByIDs.push(userID);
     await game.save();
   }
