@@ -47,6 +47,20 @@ const getGame = async () => {
   }
 };
 
+router.get("/stats", async (req: Request, res: Response) => {
+  try {
+    const _games = await GameModel.findByDateBefore(DateTime.now());
+    res.send(
+      _games
+        .map((g) => ({ title: g.title, date: g.date }))
+        .sort((a, b) =>
+          DateTime.fromISO(a.date).diff(DateTime.fromISO(b.date)).toMillis()
+        )
+    );
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
 router.get("/", async (req: Request, res: Response) => {
   try {
     const _game = await getGame();

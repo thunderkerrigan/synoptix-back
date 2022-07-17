@@ -51,6 +51,12 @@ GameSchema.statics.findByDate = async function (date: DateTime) {
   const game = await this.findOne({ date: date.toISODate() });
   return game;
 };
+GameSchema.statics.findByDateBefore = async function (date: DateTime) {
+  const game = await this.find({
+    $and: [{ date: { $exists: true } }, { date: { $ne: date.toISODate() } }],
+  });
+  return game;
+};
 
 GameSchema.statics.addFinderToGame = async function (
   userID: string,

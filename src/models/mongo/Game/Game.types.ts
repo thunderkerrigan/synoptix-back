@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 export interface IGame {
   _id: number;
   title: string;
-  date?: String;
+  date?: string;
   foundByIDs: string[];
   solution: ShadowWordsCloud;
   solutionPlainText: string;
@@ -21,5 +21,6 @@ export interface IGameDocument extends IGame {
 export interface IGameModel extends Model<IGameDocument> {
   findARandomOne: () => Promise<IGameDocument>;
   findByDate: (date: DateTime) => Promise<IGameDocument | undefined>;
+  findByDateBefore: (date: DateTime) => Promise<IGameDocument[] | undefined>;
   addFinderToGame: (userID: string, id: number) => Promise<void>;
 }
