@@ -19,6 +19,7 @@ export interface IGameDocument extends IGame {
   // checkPassword: (password: string) => Promise<boolean>
 }
 export interface IGameModel extends Model<IGameDocument> {
+  clearDateForAllGames: () => Promise<void>;
   findARandomOne: () => Promise<IGameDocument>;
   findByDate: (date: DateTime) => Promise<IGameDocument | undefined>;
   findByDateBefore: (date: DateTime) => Promise<IGameDocument[] | undefined>;

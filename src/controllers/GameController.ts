@@ -5,13 +5,14 @@ import { RecurrenceRule, scheduleJob } from "node-schedule";
 
 const rule = new RecurrenceRule();
 rule.hour = 0;
+rule.minute = 0;
 rule.second = 1;
 const autoRefreshGameSchedule = scheduleJob(
   "auto refresh game",
   rule,
   async () => {
     currentGame = await getGame();
-    console.log('new game begin!')
+    console.log("new game begin!");
   }
 );
 
@@ -22,7 +23,7 @@ export const loadGame = async () => {
 
 let currentGame: Game = undefined;
 
-export const getCurrentGame = () => currentGame
+export const getCurrentGame = () => currentGame;
 
 const getGame = async () => {
   try {
@@ -53,7 +54,7 @@ const getGame = async () => {
       const plainNewGame = newGame.toObject();
       currentGame = new Game({
         ...plainNewGame,
-        dayNumber,
+        dayNumber: dayNumber + 1,
         lastMovie: lastMovie ? lastMovie.title : "",
       });
       return currentGame;

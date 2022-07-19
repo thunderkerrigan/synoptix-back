@@ -5,23 +5,10 @@ import { TypedRequestBody } from "../models/Express";
 import { Game } from "../models/Game";
 import { GameModel } from "../models/mongo/Game/Game.model";
 import { expressjwt } from "express-jwt";
+import { getCurrentGame } from "../controllers/GameController";
 const router = Router();
 
-let currentGame: Game;
-
 // game
-
-const getGame = async () => {
-  const todayISODate = DateTime.now();
-  if (currentGame && currentGame.date === todayISODate.toISODate()) {
-    return currentGame;
-  }
-  const existingGame = await GameModel.findByDate(todayISODate);
-  if (existingGame) {
-    currentGame = new Game(existingGame);
-    return currentGame;
-  }
-};
 
 router.use(
   expressjwt({
@@ -32,7 +19,7 @@ router.use(
 
 router.get("/response", async (req: Request, res: Response) => {
   try {
-    const game = await getGame();
+    const game = getCurrentGame();
     res.send(game.title + game.solutionPlainText);
   } catch (error) {
     res.status(500).send(error);
@@ -43,6 +30,16 @@ router.get("/random", async (req: Request, res: Response) => {
   try {
     const game = await GameModel.findARandomOne();
     res.send(game);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+router.get("/resetDate", async (req: Request, res: Response) => {
+  try {
+    console.log("resetDate");
+    await GameModel.clearDateForAllGames();
+    res.send("ok");
   } catch (error) {
     res.status(500).send(error);
   }

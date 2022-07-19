@@ -68,6 +68,9 @@ GameSchema.statics.addFinderToGame = async function (
     await game.save();
   }
 };
+GameSchema.statics.clearDateForAllGames = async function () {
+  await this.updateMany({ date: { $exists: true } }, { $unset: { date: "" } });
+};
 GameSchema.statics.findARandomOne = async function () {
   const games = await this.find({
     date: { $exists: false },
