@@ -177,7 +177,16 @@ export const getAllFormsForVerb = (verb: string): string[] => {
       }
       return acc;
     }, []);
-    return forms;
+    const formsWithSlashes = forms.reduce<string[]>((acc, form) => {
+      if (form.includes("/")) {
+        const splittedForm = form.split("/");
+        return [...acc, ...splittedForm];
+      } else {
+        return [...acc, form];
+      }
+    }, []);
+
+    return formsWithSlashes;
   } catch (error) {
     return [];
   }
