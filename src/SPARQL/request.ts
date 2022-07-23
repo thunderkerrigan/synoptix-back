@@ -1,4 +1,4 @@
-export const LEMATIZE_WORD_QUERY = (word: string) => `SELECT ?l WHERE {
+export const LEMATIZE_WORD_QUERY = (word: string) => `SELECT ?l ?lemma WHERE {
      VALUES ?word {
        "${word}"@fr
      }

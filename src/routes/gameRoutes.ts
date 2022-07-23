@@ -1,7 +1,11 @@
 import { Request, Response, Router } from "express";
 import { DateTime } from "luxon";
 import { getCurrentGame } from "../controllers/GameController";
-import { TypedRequestBody } from "../models/Express";
+import {
+  ScoreResponse,
+  TypedRequestBody,
+  TypedResponse,
+} from "../models/Express";
 import { GameModel } from "../models/mongo/Game/Game.model";
 import { compareWordWithCloud } from "../utils/vectorComparator";
 const router = Router();
@@ -45,7 +49,7 @@ router.post(
       word: string;
       wordIDs: string[];
     }>,
-    res: Response
+    res: TypedResponse<ScoreResponse>
   ) => {
     const currentGame = getCurrentGame();
     try {

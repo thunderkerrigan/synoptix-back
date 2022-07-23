@@ -30,6 +30,7 @@ import {
   ALL_FORMS_WORD_QUERY,
   LEMATIZE_WORD_QUERY,
 } from "../SPARQL/request";
+import { getAllFormsForVerb } from "./ConjugationController";
 
 const wikipediaBot = new mwn({
   apiUrl: process.env.WIKIPEDIA_URL,
@@ -115,14 +116,19 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
     if (cachedWord) {
       return cachedWord.linkedWord;
     }
-    const lemma: SPARQLResponse<"l"> = await wiktionaryBot.sparqlQuery(
-      LEMATIZE_WORD_QUERY(word),
-      "https://query.wikidata.org/sparql",
-      { headers: CUSTOM_HEADERS }
-    );
+    const lemma: SPARQLResponse<"l" | "lemma"> =
+      await wiktionaryBot.sparqlQuery(
+        LEMATIZE_WORD_QUERY(word),
+        "https://query.wikidata.org/sparql",
+        { headers: CUSTOM_HEADERS }
+      );
     const lexemes = lemma.results.bindings.map((b) =>
       b.l.value.split("/").pop()
     );
+    const lemmaBases = lemma.results.bindings.map((b) => b.lemma.value);
+    const verbals = lemmaBases.map(getAllFormsForVerb).reduce((acc, cur) => {
+      return [...acc, ...cur.filter((item) => !acc.includes(item))];
+    }, [] as string[]);
     const wordRequests = lexemes.map(
       (lemma): Promise<SPARQLResponse<"formLabel">> =>
         wikipediaBot.sparqlQuery(
@@ -139,6 +145,7 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
           { headers: CUSTOM_HEADERS }
         )
     );
+
     const linkedWord = await Promise.all([
       ...wordRequests,
       ...conjugationRequests,
@@ -159,7 +166,7 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
           }, [])
           .filter((i) => !acc.includes(i)),
       ];
-    }, []);
+    }, verbals);
     if (newWords.length === 0) {
       // missing word in wiktionary; better not cache it
       return [word.toLocaleLowerCase()];

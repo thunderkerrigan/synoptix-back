@@ -4,10 +4,6 @@ import { WordModel } from "../models/mongo/Word/Word.model";
 
 jest.mock("../models/mongo/Word/Word.model.ts");
 
-// beforeAll(async () => {
-//   await loadDatabase();
-// });
-
 describe("Words matcher; no cache", () => {
   const test: [string, string[]][] = [
     ["le", ["le", "la", "les", "l"]],
