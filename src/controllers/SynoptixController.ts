@@ -118,7 +118,7 @@ export const findAllFormsForWord = async (word: string): Promise<string[]> => {
     }
     const lemma: SPARQLResponse<"l" | "lemma"> =
       await wiktionaryBot.sparqlQuery(
-        LEMATIZE_WORD_QUERY(word),
+        LEMATIZE_WORD_QUERY(word.toLocaleLowerCase()),
         "https://query.wikidata.org/sparql",
         { headers: CUSTOM_HEADERS }
       );

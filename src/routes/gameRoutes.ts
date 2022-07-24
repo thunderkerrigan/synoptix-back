@@ -1,7 +1,9 @@
 import { Request, Response, Router } from "express";
 import { DateTime } from "luxon";
 import { getCurrentGame } from "../controllers/GameController";
+import { makeRandomSentence } from "../controllers/RandomSentence";
 import {
+  RequestWinResponse,
   ScoreResponse,
   TypedRequestBody,
   TypedResponse,
@@ -32,6 +34,16 @@ router.get("/", async (req: Request, res: Response) => {
     res.status(500).send(error);
   }
 });
+
+router.get("/randomTeamName", async (req: Request, res: Response) => {
+  try {
+    const teamName = makeRandomSentence("f");
+    res.send(teamName);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
 router.get("/status", async (req: Request, res: Response) => {
   try {
     const _game = getCurrentGame();
@@ -67,7 +79,7 @@ router.post(
         ...wordIDs.map((id) => id.toString()),
         ...scoreIDs,
       ];
-      const hasWon = currentGame.checkWinningCondition(
+      const { hasWon } = currentGame.checkWinningCondition(
         userID,
         candidateWordIDs
       );
@@ -84,6 +96,38 @@ router.post(
       return res.send({
         score: [],
         foundBy: currentGame.foundBy,
+        response: undefined,
+      });
+    }
+  }
+);
+router.post(
+  "/registerWin/",
+  async (
+    req: TypedRequestBody<{
+      userID: string;
+      wordIDs: string[];
+    }>,
+    res: TypedResponse<RequestWinResponse>
+  ) => {
+    const currentGame = getCurrentGame();
+    try {
+      const { userID, wordIDs } = req.body;
+      const candidateWordIDs: string[] = wordIDs.map((id) => id.toString());
+      const { hasWon, position } = currentGame.checkWinningCondition(
+        userID,
+        candidateWordIDs
+      );
+      if (hasWon) {
+        await GameModel.addFinderToGame(userID, currentGame._id);
+      }
+      return res.send({
+        foundPosition: position,
+        response: hasWon ? currentGame.solution : undefined,
+      });
+    } catch (error) {
+      return res.send({
+        foundPosition: -1,
         response: undefined,
       });
     }

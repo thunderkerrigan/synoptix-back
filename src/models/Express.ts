@@ -13,3 +13,7 @@ export interface ScoreResponse {
   foundBy: number;
   response?: ShadowWordsCloud;
 }
+export interface RequestWinResponse {
+  foundPosition: number;
+  response?: ShadowWordsCloud;
+}

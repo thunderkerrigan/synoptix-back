@@ -5,6 +5,13 @@ export interface ShadowWord {
   similarity: number;
 }
 
+export interface LastWord {
+  index: number;
+  label: string;
+  matchCount: number;
+  nearCount: number;
+}
+
 export type WordCloud = Record<
   string,
   {

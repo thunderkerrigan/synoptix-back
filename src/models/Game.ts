@@ -5,7 +5,6 @@ import {
   WORDS_REG_EXP,
 } from "../utils/Regexp";
 import { makeHollowWord } from "../utils/string+utils";
-import { IGame } from "./mongo/Game/Game.types";
 import { GameWordCloud, ShadowWord, ShadowWordsCloud, WordCloud } from "./Word";
 
 export interface RedactedGame {
@@ -27,7 +26,10 @@ export interface Game extends Omit<RedactedGame, "gameID"> {
   solutionPlainText: string;
   wordCloud: GameWordCloud; // word cloud of the synopsis
   cache: Record<string, ShadowWord[]>; // cache of previous scored words
-  checkWinningCondition: (userID: string, candidateIDs: string[]) => boolean;
+  checkWinningCondition: (
+    userID: string,
+    candidateIDs: string[]
+  ) => { hasWon: boolean; position: number };
   redactedGame: () => RedactedGame;
   makeWordCloud: (text: string) => GameWordCloud;
   transformToShadowCloud: (
@@ -167,18 +169,21 @@ export class Game implements Game {
       redactedSynopsis: this.redactedSynopsis,
     };
   };
-  checkWinningCondition = (userID: string, candidateIDs: string[]): boolean => {
+  checkWinningCondition = (
+    userID: string,
+    candidateIDs: string[]
+  ): { hasWon: boolean; position: number } => {
     if (!this.foundByIDs.includes(userID)) {
       const solutionIDs = this.redactedTitle
         .reduce((acc, curr) => [...acc, ...curr], [])
         .map((word) => word.id.toString());
       if (solutionIDs.every((id) => candidateIDs.includes(id.toString()))) {
         this.foundByIDs.push(userID);
-        return true;
+        return { hasWon: true, position: this.foundByIDs.indexOf(userID) + 1 };
       }
-      return false;
+      return { hasWon: false, position: -1 };
     }
-    return true;
+    return { hasWon: true, position: this.foundByIDs.indexOf(userID) + 1 };
   };
   get gameModel() {
     return {
